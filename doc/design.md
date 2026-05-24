@@ -23,7 +23,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 ## 2. 当前实现摘要
 
-- 后端：.NET 8，强特征 DDD + CQRS 读写分离。
+- 后端：.NET 10，强特征 DDD + CQRS 读写分离。
 - 前端：Vue 3 + Vite + Tailwind，目录位于 `Web/`。
 - 数据源：Shavit MySQL，只读查询。
 - 本地 API 开发地址：`http://localhost:5240`，HTTPS 地址：`https://localhost:7182`。

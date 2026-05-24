@@ -1,6 +1,12 @@
 # SurfWeb
 
-SurfWeb 是一个面向 Surf 服务器的只读成绩查询站点，后端使用 .NET 8 Web API + EF Core，前端使用 Vue 3 + Vite + Tailwind CSS。
+SurfWeb 是一个面向 Surf 服务器的只读成绩查询站点，后端使用 .NET 10 Web API + EF Core，前端使用 Vue 3 + Vite + Tailwind CSS。
+
+## 环境要求
+
+- .NET 10 SDK
+- Node.js 20+
+- MySQL-compatible Shavit 数据库
 
 ## 快速开始
 
