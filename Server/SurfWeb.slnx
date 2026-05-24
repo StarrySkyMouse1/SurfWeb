@@ -1,0 +1,102 @@
+<Solution>
+  <Folder Name="/doc/">
+    <File Path="doc/design.md" />
+  </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/README.md" />
+    <Folder Name="/design-previews/">
+      <File Path="docs/design-previews/ui-directions.html" />
+    </Folder>
+    <Folder Name="/superpowers/">
+      <Folder Name="/plans/">
+        <File Path="docs/superpowers/plans/2026-05-22-surfweb.md" />
+      </Folder>
+      <Folder Name="/specs/">
+        <File Path="docs/superpowers/specs/2026-05-22-surfweb-design.md" />
+      </Folder>
+    </Folder>
+  </Folder>
+  <Project Path="SurfWeb.Api/SurfWeb.Api.csproj" />
+  <Project Path="SurfWeb.Application/SurfWeb.Application.csproj" />
+  <Project Path="SurfWeb.Application.Web/SurfWeb.Application.Web.csproj" />
+  <Project Path="SurfWeb.Application.Tests/SurfWeb.Application.Tests.csproj" />
+  <Project Path="SurfWeb.Domain/SurfWeb.Domain.csproj" />
+  <Project Path="SurfWeb.Infrastructure/SurfWeb.Infrastructure.csproj" />
+  <Folder Name="/Properties/">
+    <File Path="SurfWeb.Application.Web/Properties/AssemblyInfo.cs" />
+  </Folder>
+  <Folder Name="/surfweb/">
+    <File Path="surfweb/.env.development" />
+    <File Path="surfweb/.env.example" />
+    <File Path="surfweb/.gitignore" />
+    <File Path="surfweb/index.html" />
+    <File Path="surfweb/package.json" />
+    <File Path="surfweb/package-lock.json" />
+    <File Path="surfweb/README.md" />
+    <File Path="surfweb/tsconfig.app.json" />
+    <File Path="surfweb/tsconfig.json" />
+    <File Path="surfweb/tsconfig.node.json" />
+    <File Path="surfweb/vite.config.ts" />
+    <Folder Name="/surfweb/.vscode/">
+      <File Path="surfweb/.vscode/extensions.json" />
+    </Folder>
+    <Folder Name="/surfweb/public/">
+      <File Path="surfweb/public/favicon.svg" />
+    </Folder>
+    <Folder Name="/surfweb/src/">
+      <File Path="surfweb/src/App.vue" />
+      <File Path="surfweb/src/main.ts" />
+      <File Path="surfweb/src/style.css" />
+      <Folder Name="/surfweb/src/api/">
+        <File Path="surfweb/src/api/client.ts" />
+      </Folder>
+      <Folder Name="/surfweb/src/components/">
+        <File Path="surfweb/src/components/AppHeader.vue" />
+        <File Path="surfweb/src/components/LeaderboardTable.vue" />
+        <File Path="surfweb/src/components/MapCard.vue" />
+        <File Path="surfweb/src/components/MapPreviewImage.vue" />
+        <File Path="surfweb/src/components/PaginationBar.vue" />
+        <File Path="surfweb/src/components/ServerInfoPanel.vue" />
+        <File Path="surfweb/src/components/TierFilter.vue" />
+        <Folder Name="/surfweb/src/components/skeleton/">
+          <File Path="surfweb/src/components/skeleton/SkeletonBar.vue" />
+          <File Path="surfweb/src/components/skeleton/SkeletonMapCard.vue" />
+          <File Path="surfweb/src/components/skeleton/SkeletonMapDetailHeader.vue" />
+          <File Path="surfweb/src/components/skeleton/SkeletonMapGrid.vue" />
+          <File Path="surfweb/src/components/skeleton/SkeletonPagination.vue" />
+          <File Path="surfweb/src/components/skeleton/SkeletonRecordList.vue" />
+          <File Path="surfweb/src/components/skeleton/SkeletonServerInfo.vue" />
+          <File Path="surfweb/src/components/skeleton/SkeletonStatCards.vue" />
+          <File Path="surfweb/src/components/skeleton/SkeletonTable.vue" />
+        </Folder>
+      </Folder>
+      <Folder Name="/surfweb/src/composables/">
+        <File Path="surfweb/src/composables/useInfiniteScroll.ts" />
+        <File Path="surfweb/src/composables/useMapImageConfig.ts" />
+        <File Path="surfweb/src/composables/useServerInfo.ts" />
+      </Folder>
+      <Folder Name="/surfweb/src/constants/">
+        <File Path="surfweb/src/constants/homeTable.ts" />
+        <File Path="surfweb/src/constants/paginationBar.ts" />
+        <File Path="surfweb/src/constants/tableCell.ts" />
+      </Folder>
+      <Folder Name="/surfweb/src/router/">
+        <File Path="surfweb/src/router/index.ts" />
+      </Folder>
+      <Folder Name="/surfweb/src/utils/">
+        <File Path="surfweb/src/utils/formatPlaytime.ts" />
+        <File Path="surfweb/src/utils/formatRecordDate.ts" />
+        <File Path="surfweb/src/utils/formatTimeGap.ts" />
+        <File Path="surfweb/src/utils/isRecordWr.ts" />
+        <File Path="surfweb/src/utils/mapImageUrl.ts" />
+        <File Path="surfweb/src/utils/skeletonRowCount.ts" />
+      </Folder>
+      <Folder Name="/surfweb/src/views/">
+        <File Path="surfweb/src/views/HomeView.vue" />
+        <File Path="surfweb/src/views/MapDetailView.vue" />
+        <File Path="surfweb/src/views/MapsView.vue" />
+        <File Path="surfweb/src/views/PlayerView.vue" />
+      </Folder>
+    </Folder>
+  </Folder>
+</Solution>

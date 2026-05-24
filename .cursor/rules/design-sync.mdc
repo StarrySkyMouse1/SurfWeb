@@ -1,0 +1,88 @@
+---
+description: "[阻塞] 改代码必须同轮同步 doc/design.md"
+alwaysApply: true
+globs:
+  - SurfWeb.Api/**
+  - SurfWeb.Application/**
+  - SurfWeb.Infrastructure/**
+  - surfweb/**
+---
+
+# [阻塞] 设计文档同步（SurfWeb）
+
+先遵守 **`project-scope.mdc`**：本仓库仅 **`doc/design.md`** 为唯一设计文档。
+
+未同轮同步 design = **任务未完成**，不得宣称「已完成 / 已修复 / 可以用了」。
+
+## 何时必须同步（任一命中即触发）
+
+| 触发 | 示例 |
+|------|------|
+| 功能 / UI | 新页面、路由、Tab、筛选、文案、空状态、加载态 |
+| API | 新/改 `Controllers/V1/*`、路由、查询参数、响应字段 |
+| 配置 | `appsettings.json`、`SurfWeb:Styles`、CORS、缓存秒数、`.env*` |
+| 数据 / 查询 | `ShavitDbContext`、实体、`Services/*` 查询逻辑、Shavit 表映射 |
+| DTO / 契约 | `Application/Dtos/*`、`ApiResponse` 包装、时间格式 |
+| 里程碑 | 阶段能力上线或范围收缩 → 更新 **§10** 的 ✅/未做；必要时改 `docs/superpowers/plans/2026-05-22-surfweb.md` 复选框 |
+
+**不触发**：纯重命名且无行为变化、仅注释、仅 `bin/`/`obj/`/`node_modules/`、用户明确「只回答问题不改文档」、改动仅在 `docs/superpowers/plans` 勾选且与 design §10 已一致。
+
+## 强制工作流（同一轮对话内）
+
+```
+1. 判断：本次 diff 是否命中上表？
+2. 是 → 同轮编辑 doc/design.md（禁止只改 .cs / .vue / .ts）
+3. 按下方映射更新对应章节 + 文首「当前版本要点」+ §10（若适用）
+4. 大功能验收时：可选同轮更新 docs/superpowers/plans/2026-05-22-surfweb.md 任务勾选
+5. 交付前自检；回复列出已同步的 design 章节
+```
+
+## 章节映射（改什么就改哪）
+
+| 变更类型 | 必查章节 |
+|----------|----------|
+| 产品目标 / v1 边界 | §1、文首要点 |
+| 技术栈 / 架构决策 | §2、§4、文首要点 |
+| Shavit 表 / 排行语义 | §3 |
+| API 路径 / 响应 / 缓存 | §5 |
+| 页面 / 路由 / 组件 / 样式 | §6（含 6.2 路由表、6.3 组件列表） |
+| 连接串 / CORS / Styles 配置 | §7 |
+| 错误码 / 健康检查 / 日志 | §8 |
+| 测试 / CI | §9 |
+| 阶段交付 / 与实现差异 | §10、文首「文档与实现」 |
+| 风险 / 待确认项 | §11、§12 |
+
+## 完成前自检
+
+- [ ] 若改了后端或 `surfweb/`，则 **doc/design.md** 已同轮更新
+- [ ] §5 路径、参数、响应字段与 Controller / `client.ts` 一致
+- [ ] §6 路由、组件名与 `router/`、`views/`、`components/` 一致
+- [ ] §7 配置键与 `appsettings.json`、`SurfWebOptions` 一致
+- [ ] 文首「当前版本要点」能概括本次变更
+- [ ] 无仍描述已删除功能的段落
+- [ ] 用户回复含：**「design.md：已同步 §x、§y」**（列出章节号）
+
+## 反模式（禁止）
+
+- ❌ 只改代码，文档下次再补
+- ❌ 只更新 `docs/superpowers/specs/*.md` 而不更新 `doc/design.md`
+- ❌ 新增第三份总设计文档记录本次变更
+- ❌ §10 仍标「未做」但代码已上线（或相反）
+
+## 快速对照（路径均相对于仓库根）
+
+| 代码位置 | design 落点 |
+|----------|-------------|
+| `SurfWeb.Api/Controllers/V1/*.cs` | §5 |
+| `SurfWeb.Application/Queries/*QueryService.cs` | §5、§3.3 |
+| `SurfWeb.Application/Abstractions/IQueryServices.cs` | §5 |
+| `SurfWeb.Infrastructure/Repositories/*.cs` | §3、§5 |
+| `SurfWeb.Infrastructure/Persistence/ShavitDbContext.cs` | §3.1 |
+| `SurfWeb.Domain/Entities/*` | §3.1 |
+| `appsettings.json` / User Secrets | §7、§12 |
+| `surfweb/src/views/*.vue` | §6.2 |
+| `surfweb/src/components/*.vue` | §6.1、§6.3 |
+| `surfweb/src/api/client.ts` | §5.1 |
+| `surfweb/src/router/index.ts` | §6.2 |
+
+实现与设计暂时不一致时：在 **§10** 或文首「文档与实现」显式注明，并优先同轮消除差异。

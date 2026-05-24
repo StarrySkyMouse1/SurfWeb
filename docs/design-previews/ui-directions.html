@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SurfWeb UI 方向预览</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Inter:wght@400;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    .font-display { font-family: Orbitron, sans-serif; }
+    .font-mono-time { font-family: "JetBrains Mono", monospace; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold mb-2">SurfWeb — 三种 UI 方向（本地预览）</h1>
+    <p class="text-slate-400 mb-6 text-sm">在浏览器打开此文件，点击标签切换。选定后告诉助手 A / B / C。</p>
+    <div class="flex gap-2 mb-8 flex-wrap">
+      <button onclick="show('a')" id="btn-a" class="px-4 py-2 rounded-lg bg-cyan-600 text-sm font-semibold">A · 霓虹暗色</button>
+      <button onclick="show('b')" id="btn-b" class="px-4 py-2 rounded-lg bg-slate-700 text-sm">B · 玻璃拟态</button>
+      <button onclick="show('c')" id="btn-c" class="px-4 py-2 rounded-lg bg-slate-700 text-sm">C · 极简高对比</button>
+    </div>
+
+    <!-- A: Neon dark -->
+    <section id="dir-a" class="space-y-6">
+      <header class="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950 p-8">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(34,211,238,0.15),transparent_50%)]"></div>
+        <p class="font-display text-3xl tracking-wider text-cyan-300">SURF<span class="text-white">WEB</span></p>
+        <p class="text-slate-400 mt-2 text-sm">滑翔记录 · 实时 Shavit 数据</p>
+      </header>
+      <div class="grid md:grid-cols-3 gap-4">
+        <article class="rounded-xl border border-cyan-500/20 bg-slate-900/80 p-4 hover:border-cyan-400/60 transition shadow-[0_0_24px_rgba(34,211,238,0.08)]">
+          <span class="text-xs font-bold text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded">T4</span>
+          <h3 class="mt-2 font-semibold truncate">surf_utopia</h3>
+          <p class="text-xs text-slate-500 mt-1">128 完赛 · WR 42.31</p>
+        </article>
+        <article class="rounded-xl border border-purple-500/20 bg-slate-900/80 p-4">
+          <span class="text-xs font-bold text-purple-400 bg-purple-950 px-2 py-0.5 rounded">T6</span>
+          <h3 class="mt-2 font-semibold truncate">surf_mesa</h3>
+          <p class="text-xs text-slate-500 mt-1">56 完赛 · WR 89.02</p>
+        </article>
+        <article class="rounded-xl border border-emerald-500/20 bg-slate-900/80 p-4">
+          <span class="text-xs font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded">T2</span>
+          <h3 class="mt-2 font-semibold truncate">surf_kitsune</h3>
+          <p class="text-xs text-slate-500 mt-1">312 完赛 · WR 28.17</p>
+        </article>
+      </div>
+      <div class="rounded-xl border border-cyan-500/20 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-cyan-950/50 text-cyan-300/80"><tr><th class="p-3 text-left">#</th><th class="p-3 text-left">玩家</th><th class="p-3 text-right">时间</th><th class="p-3 text-right">Sync</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-800 bg-cyan-500/5"><td class="p-3 text-amber-400">1</td><td class="p-3">PlayerOne</td><td class="p-3 text-right font-mono-time text-cyan-300">42.310</td><td class="p-3 text-right text-slate-400">98%</td></tr>
+            <tr class="border-t border-slate-800"><td class="p-3">2</td><td class="p-3">SurfKing</td><td class="p-3 text-right font-mono-time">43.102</td><td class="p-3 text-right text-slate-400">97%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-slate-500">特点：暗色底 + 青色霓虹、电竞感、适合「炫酷」定位</p>
+    </section>
+
+    <!-- B: Glass -->
+    <section id="dir-b" class="hidden space-y-6">
+      <header class="rounded-3xl p-8 backdrop-blur-xl bg-white/5 border border-white/10 shadow-2xl" style="background-image: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.15));">
+        <p class="text-4xl font-bold bg-gradient-to-r from-indigo-300 to-pink-300 bg-clip-text text-transparent">SurfWeb</p>
+        <p class="text-slate-300/80 mt-2">Records · Rankings · Players</p>
+      </header>
+      <div class="grid md:grid-cols-3 gap-4">
+        <article class="rounded-2xl p-4 backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10 transition">
+          <span class="text-xs px-2 py-1 rounded-full bg-indigo-500/30 text-indigo-200">Tier 4</span>
+          <h3 class="mt-3 font-semibold">surf_utopia</h3>
+        </article>
+        <article class="rounded-2xl p-4 backdrop-blur-md bg-white/5 border border-white/10">
+          <span class="text-xs px-2 py-1 rounded-full bg-pink-500/30 text-pink-200">Tier 6</span>
+          <h3 class="mt-3 font-semibold">surf_mesa</h3>
+        </article>
+        <article class="rounded-2xl p-4 backdrop-blur-md bg-white/5 border border-white/10">
+          <span class="text-xs px-2 py-1 rounded-full bg-violet-500/30 text-violet-200">Tier 2</span>
+          <h3 class="mt-3 font-semibold">surf_kitsune</h3>
+        </article>
+      </div>
+      <p class="text-xs text-slate-500">特点：毛玻璃、渐变标题、偏现代产品站</p>
+    </section>
+
+    <!-- C: Minimal high contrast -->
+    <section id="dir-c" class="hidden space-y-6 bg-white text-slate-900 rounded-2xl p-8">
+      <header class="border-b-4 border-black pb-4">
+        <p class="text-4xl font-black tracking-tight">SURFWEB</p>
+        <p class="text-slate-600 mt-1 text-sm uppercase tracking-widest">Glide Records</p>
+      </header>
+      <div class="grid md:grid-cols-3 gap-3">
+        <article class="border-2 border-black p-4 hover:bg-black hover:text-white transition cursor-pointer">
+          <span class="text-xs font-black">T4</span>
+          <h3 class="mt-2 font-bold">surf_utopia</h3>
+        </article>
+        <article class="border-2 border-black p-4">
+          <span class="text-xs font-black">T6</span>
+          <h3 class="mt-2 font-bold">surf_mesa</h3>
+        </article>
+        <article class="border-2 border-black p-4">
+          <span class="text-xs font-black">T2</span>
+          <h3 class="mt-2 font-bold">surf_kitsune</h3>
+        </article>
+      </div>
+      <p class="text-xs text-slate-500">特点：黑白粗体、Brutalist，信息密度高但视觉冲击强</p>
+    </section>
+  </div>
+  <script>
+    function show(id) {
+      ['a','b','c'].forEach(k => {
+        document.getElementById('dir-' + k).classList.toggle('hidden', k !== id);
+        const btn = document.getElementById('btn-' + k);
+        btn.className = k === id
+          ? 'px-4 py-2 rounded-lg bg-cyan-600 text-sm font-semibold'
+          : 'px-4 py-2 rounded-lg bg-slate-700 text-sm';
+      });
+      if (id === 'c') document.body.className = 'bg-slate-200 text-slate-900 min-h-screen';
+      else document.body.className = 'bg-slate-950 text-slate-100 min-h-screen';
+    }
+  </script>
+</body>
+</html>

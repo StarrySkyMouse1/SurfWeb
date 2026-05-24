@@ -1,0 +1,49 @@
+<script setup lang="ts">
+import { RouterLink } from 'vue-router'
+import { PX_BTN_ACTIVE_CLASS, PX_BTN_CLASS, PX_EN_SUBTITLE_CLASS } from '../constants/pixelTheme'
+
+const links = [
+  { to: '/', label: '首页', code: 'HOME' },
+  { to: '/maps', label: '地图', code: 'MAPS' },
+  { to: '/servers', label: '服务器', code: 'SRV' },
+]
+</script>
+
+<template>
+  <header class="sticky top-0 z-50 bg-px-paper/95 pt-4 backdrop-blur-sm">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4">
+      <div class="px-panel flex w-full flex-wrap items-center justify-between gap-4 px-4 py-4">
+        <RouterLink to="/" class="flex items-center gap-3 hover:opacity-90">
+          <div
+            class="h-10 w-10 shrink-0 overflow-hidden border-2 border-px-ink bg-px-surface"
+            style="box-shadow: 2px 2px 0 var(--color-px-ink)"
+          >
+            <img
+              src="/brand-icon.png"
+              alt="地满滑翔"
+              width="40"
+              height="40"
+              class="h-full w-full object-cover"
+            />
+          </div>
+          <div>
+            <p class="text-lg font-bold leading-none">地满滑翔</p>
+            <p :class="[PX_EN_SUBTITLE_CLASS, 'mt-1']">SURF RECORD</p>
+          </div>
+        </RouterLink>
+        <nav class="flex flex-wrap gap-2" aria-label="主导航">
+          <RouterLink
+            v-for="link in links"
+            :key="link.to"
+            :to="link.to"
+            :class="[PX_BTN_CLASS, 'flex min-w-[4.5rem] flex-col items-center px-3 py-1.5 leading-tight']"
+            :active-class="PX_BTN_ACTIVE_CLASS"
+          >
+            <span class="text-sm font-bold">{{ link.label }}</span>
+            <span class="font-pixel text-[8px] opacity-80">{{ link.code }}</span>
+          </RouterLink>
+        </nav>
+      </div>
+    </div>
+  </header>
+</template>

@@ -1,0 +1,29 @@
+---
+description: "SurfWeb 任务范围：后端 / 前端 / 文档（单仓库单设计文档）"
+alwaysApply: true
+---
+
+# SurfWeb 任务范围
+
+本仓库为**单一产品**，仅维护**一份**设计文档：`doc/design.md`。
+
+## 代码范围
+
+| 范围 | 路径 | 说明 |
+|------|------|------|
+| 后端 | `SurfWeb.{Api,Application,Infrastructure}/**` | .NET 8 三层 |
+| 前端 | `surfweb/**` | Vue 3 + Vite + Tailwind |
+| 设计（唯一） | `doc/design.md` | 改行为必须同轮同步，见 `design-sync.mdc` |
+| 实施计划（辅助） | `docs/superpowers/plans/*.md` | 里程碑勾选；大功能上线时同轮更新 |
+| 非产品代码 | `docs/design-previews/**` | UI 静态预览，按需更新 |
+
+## 本轮约定
+
+- 可同时改后端 + 前端（同一功能贯通），但**禁止**只改代码不更新 `doc/design.md`。
+- **禁止**新建第二份「总设计」类 markdown（如根目录 `DESIGN.md`、重复的 `design-spec.md`）；变更只写入 `doc/design.md`。
+- 用户明确说「只回答问题 / 不改文档」时，可不触发改文档义务。
+
+## 默认排除
+
+- `bin/`、`obj/`、`node_modules/`、`dist/`
+- 纯格式化、无行为变化的重命名（仍建议在 design 文首要点中一句话带过，若影响查找）

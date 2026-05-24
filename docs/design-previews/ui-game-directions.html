@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SurfWeb · 游戏风 UI 方向（基于方向 C）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Press+Start+2P&family=Rajdhani:wght@600;700&family=Inter:wght@500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    .font-arcade { font-family: "Press Start 2P", monospace; }
+    .font-hud { font-family: Rajdhani, sans-serif; }
+    .font-display { font-family: Orbitron, sans-serif; }
+    .font-mono-time { font-family: "JetBrains Mono", monospace; }
+    .scanlines::after {
+      content: "";
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.06) 2px,
+        rgba(0, 0, 0, 0.06) 4px
+      );
+    }
+    .pixel-border { box-shadow: 4px 4px 0 #000; }
+    .skew-tab { transform: skewX(-8deg); }
+    .skew-tab > * { transform: skewX(8deg); }
+  </style>
+</head>
+<body class="bg-neutral-200 text-black min-h-screen">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <header class="mb-8 border-4 border-black bg-white p-6">
+      <p class="text-xs font-bold uppercase tracking-[0.3em] text-neutral-500">视觉设计伴侣 · SurfWeb</p>
+      <h1 class="mt-2 text-3xl font-black">游戏风 UI — 四版方案</h1>
+      <p class="mt-3 text-sm text-neutral-600 max-w-2xl leading-relaxed">
+        在现有<strong>方向 C</strong>（黑白、粗边框、高信息密度）上延伸，不改成「纯炫酷暗色站」。
+        每版保留：强边框、表格式排行、等宽时间、Tier 色标。用浏览器打开本文件，点标签切换；选定后回复 <strong>D / E / F / G</strong> 或组合（如「E 导航 + D 表格」）。
+      </p>
+    </header>
+
+    <div class="flex flex-wrap gap-2 mb-8 sticky top-2 z-50 bg-neutral-200/95 py-2 backdrop-blur">
+      <button type="button" onclick="show('d')" id="btn-d" class="border-2 border-black bg-black text-white px-4 py-2 text-sm font-bold">D · 街机机房</button>
+      <button type="button" onclick="show('e')" id="btn-e" class="border-2 border-black bg-white px-4 py-2 text-sm font-bold">E · 竞技 HUD</button>
+      <button type="button" onclick="show('f')" id="btn-f" class="border-2 border-black bg-white px-4 py-2 text-sm font-bold">F · 像素简约</button>
+      <button type="button" onclick="show('g')" id="btn-g" class="border-2 border-black bg-white px-4 py-2 text-sm font-bold">G · 速度仪表盘</button>
+    </div>
+
+    <!-- D: Arcade -->
+    <section id="dir-d" class="space-y-6">
+      <div class="grid lg:grid-cols-2 gap-4 text-sm">
+        <div class="border-2 border-black bg-white p-4">
+          <p class="font-bold uppercase text-xs text-neutral-500 mb-2">定位</p>
+          <p>街机厅 / MAME 高分榜。暗底 + 霓虹描边，数字像机台 LED。</p>
+        </div>
+        <div class="border-2 border-black bg-white p-4">
+          <p class="font-bold uppercase text-xs text-neutral-500 mb-2">保留自 C</p>
+          <p>2px 黑框、表头反色、hover 反白；仅把背景改为深色、强调色点亮。</p>
+        </div>
+      </div>
+
+      <div class="relative scanlines overflow-hidden border-4 border-black bg-[#0a0a12] text-white shadow-[8px_8px_0_#000]">
+        <header class="border-b-4 border-[#00ffcc] bg-black px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+          <p class="font-display text-2xl tracking-widest text-[#00ffcc] drop-shadow-[0_0_12px_rgba(0,255,204,0.5)]">地满滑翔</p>
+          <nav class="flex gap-2">
+            <span class="border-2 border-[#00ffcc] bg-[#00ffcc] text-black px-3 py-1 text-xs font-bold uppercase">首页</span>
+            <span class="border-2 border-[#00ffcc] px-3 py-1 text-xs font-bold uppercase text-[#00ffcc]">地图</span>
+            <span class="border-2 border-[#ff00aa] px-3 py-1 text-xs font-bold uppercase text-[#ff00aa]">服务器</span>
+          </nav>
+        </header>
+
+        <div class="p-4 grid lg:grid-cols-2 gap-4">
+          <div class="border-2 border-white/20 bg-black/60">
+            <div class="border-b-2 border-[#00ffcc] bg-[#00ffcc]/10 px-3 py-2 font-display text-sm text-[#00ffcc] uppercase">排行 · TOP 10</div>
+            <table class="w-full text-sm">
+              <thead class="text-[#00ffcc]/70 text-xs uppercase"><tr><th class="p-2 text-left">#</th><th class="p-2 text-left">玩家</th><th class="p-2 text-right">积分</th></tr></thead>
+              <tbody>
+                <tr class="border-t border-white/10 bg-[#ff00aa]/10"><td class="p-2 font-display text-[#ff00aa]">01</td><td class="p-2 font-bold">星空鼠鼠</td><td class="p-2 text-right font-mono-time text-[#00ffcc]">12840</td></tr>
+                <tr class="border-t border-white/10 hover:bg-white hover:text-black"><td class="p-2">02</td><td class="p-2">SurfKing</td><td class="p-2 text-right font-mono-time">11902</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="border-2 border-white/20 bg-black/60 p-4">
+            <p class="text-xs text-[#ff00aa] font-bold uppercase mb-2">服务器 · INSERT COIN</p>
+            <p class="font-bold text-lg">地满滑翔</p>
+            <code class="block mt-2 font-mono-time text-xs text-[#00ffcc]">connect 127.0.0.1:27015</code>
+            <p class="mt-3 font-mono-time text-sm">0 / 64 在线</p>
+          </div>
+        </div>
+
+        <div class="px-4 pb-4 grid grid-cols-3 gap-2">
+          <article class="border-2 border-[#00ffcc]/40 p-3 hover:border-[#00ffcc] hover:shadow-[0_0_16px_rgba(0,255,204,0.3)]">
+            <span class="text-[10px] font-bold text-[#00ffcc] border border-[#00ffcc] px-1">T4</span>
+            <p class="mt-2 font-bold truncate text-sm">surf_utopia</p>
+          </article>
+          <article class="border-2 border-[#ff00aa]/40 p-3"><span class="text-[10px] font-bold text-[#ff00aa] border border-[#ff00aa] px-1">T6</span><p class="mt-2 font-bold text-sm truncate">surf_mesa</p></article>
+          <article class="border-2 border-amber-400/40 p-3"><span class="text-[10px] font-bold text-amber-400 border border-amber-400 px-1">T2</span><p class="mt-2 font-bold text-sm truncate">surf_kitsune</p></article>
+        </div>
+      </div>
+      <p class="text-xs text-neutral-600"><strong>色板：</strong>底 #0a0a12 · 主强调 #00ffcc · 副强调 #ff00aa · 仍用黑框实体感</p>
+    </section>
+
+    <!-- E: Competitive HUD -->
+    <section id="dir-e" class="hidden space-y-6">
+      <div class="grid lg:grid-cols-2 gap-4 text-sm">
+        <div class="border-2 border-black bg-white p-4">
+          <p class="font-bold uppercase text-xs text-neutral-500 mb-2">定位</p>
+          <p>Source / CS 社区 surf 站：战术面板、斜切标签、橙黑对比。</p>
+        </div>
+        <div class="border-2 border-black bg-white p-4">
+          <p class="font-bold uppercase text-xs text-neutral-500 mb-2">保留自 C</p>
+          <p>白底可读性 + 黑表头；Tier 用「稀有度」色条而非霓虹发光。</p>
+        </div>
+      </div>
+
+      <div class="border-4 border-black bg-[#f4f4f0] overflow-hidden">
+        <header class="bg-[#1a1a1a] text-white border-b-4 border-[#e85d04] px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-1 bg-[#e85d04]"></div>
+            <p class="font-hud text-2xl font-bold uppercase tracking-wide">地满滑翔</p>
+          </div>
+          <nav class="flex gap-1 font-hud text-sm font-bold uppercase">
+            <span class="skew-tab bg-[#e85d04] text-black px-4 py-1.5"><span>首页</span></span>
+            <span class="skew-tab border-2 border-neutral-600 px-4 py-1.5 text-neutral-300"><span>地图</span></span>
+            <span class="skew-tab border-2 border-neutral-600 px-4 py-1.5 text-neutral-300"><span>服务器</span></span>
+          </nav>
+        </header>
+
+        <div class="p-4 grid lg:grid-cols-2 gap-4">
+          <div class="border-2 border-black bg-white">
+            <div class="flex items-center gap-2 border-b-2 border-black bg-black text-white px-3 py-2">
+              <span class="font-hud text-lg font-bold uppercase">排行</span>
+              <span class="text-[10px] bg-[#e85d04] text-black px-1.5 font-bold">LIVE</span>
+            </div>
+            <table class="w-full text-sm font-hud">
+              <thead class="bg-neutral-100 text-xs uppercase"><tr><th class="p-2 text-left w-10">#</th><th class="p-2 text-left">玩家</th><th class="p-2 text-right">积分</th></tr></thead>
+              <tbody>
+                <tr class="border-t border-black bg-[#e85d04]/15"><td class="p-2 font-bold text-[#e85d04]">1</td><td class="p-2 font-bold">星空鼠鼠</td><td class="p-2 text-right font-mono-time font-bold">12840</td></tr>
+                <tr class="border-t border-black hover:bg-black hover:text-white"><td class="p-2">2</td><td class="p-2">SurfKing</td><td class="p-2 text-right font-mono-time">11902</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="border-2 border-black bg-white p-4">
+            <p class="font-hud text-xs font-bold uppercase text-[#e85d04] tracking-widest">服务器状态</p>
+            <p class="font-hud text-xl font-bold mt-1">地满滑翔</p>
+            <div class="mt-3 border-l-4 border-[#e85d04] pl-3">
+              <code class="font-mono-time text-xs">connect 127.0.0.1:27015</code>
+              <p class="font-mono-time text-sm font-bold mt-2">0 / 64 在线</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-4 pb-4 flex gap-2 overflow-x-auto">
+          <article class="min-w-[140px] border-2 border-black border-t-4 border-t-purple-600 p-3 bg-white">
+            <span class="font-hud text-xs font-bold text-purple-700">TIER 4</span>
+            <p class="font-bold text-sm mt-1 truncate">surf_utopia</p>
+          </article>
+          <article class="min-w-[140px] border-2 border-black border-t-4 border-t-red-600 p-3 bg-white">
+            <span class="font-hud text-xs font-bold text-red-700">TIER 6</span>
+            <p class="font-bold text-sm mt-1 truncate">surf_mesa</p>
+          </article>
+        </div>
+      </div>
+      <p class="text-xs text-neutral-600"><strong>色板：</strong>橙 #e85d04 · 炭黑导航 · 白底内容区 · Tier 顶边条着色</p>
+    </section>
+
+    <!-- F: Pixel minimal (v2) -->
+    <section id="dir-f" class="hidden space-y-6">
+      <div class="border-4 border-black bg-[#3d5afe] text-white p-6">
+        <p class="font-bold text-lg">F · 像素简约（v2 完整稿）</p>
+        <p class="mt-2 text-sm text-white/90 max-w-xl leading-relaxed">
+          已单独重设计：暖纸色底 + 墨黑描边 + 单点蓝强调；像素体仅用于标签/名次；含首页、地图、服务器、设计规范四屏。
+        </p>
+        <a href="ui-pixel-minimal.html" class="mt-4 inline-block border-2 border-white bg-white px-4 py-2 text-sm font-bold text-black hover:bg-black hover:text-white">
+          打开完整预览 →
+        </a>
+      </div>
+      <iframe src="ui-pixel-minimal.html" title="像素简约预览" class="w-full min-h-[720px] border-4 border-black bg-white"></iframe>
+      <p class="text-xs text-neutral-600"><strong>要点：</strong>纸面 #f3f1eb · 阶梯阴影 4px · Silkscreen 标签 · 中文 IBM Plex Sans · 保留 C 的反色 hover 行</p>
+    </section>
+
+    <!-- G: Speed dashboard -->
+    <section id="dir-g" class="hidden space-y-6">
+      <div class="grid lg:grid-cols-2 gap-4 text-sm">
+        <div class="border-2 border-black bg-white p-4">
+          <p class="font-bold uppercase text-xs text-neutral-500 mb-2">定位</p>
+          <p>竞速 / 速通仪表盘：斜纹、名次奖牌、时间大字，仍保持 C 的黑白骨架。</p>
+        </div>
+        <div class="border-2 border-black bg-white p-4">
+          <p class="font-bold uppercase text-xs text-neutral-500 mb-2">保留自 C</p>
+          <p>浅灰底 + 黑框；用斜向装饰与数字层级营造速度感，不过度暗色化。</p>
+        </div>
+      </div>
+
+      <div class="border-4 border-black bg-white overflow-hidden relative">
+        <div class="absolute inset-0 opacity-[0.04] pointer-events-none" style="background: repeating-linear-gradient(-12deg, #000 0, #000 2px, transparent 2px, transparent 12px);"></div>
+        <header class="relative border-b-4 border-black bg-black text-white px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.4em] text-yellow-400">Surf Records</p>
+            <p class="text-3xl font-black italic tracking-tight">地满滑翔</p>
+          </div>
+          <nav class="flex gap-2">
+            <span class="bg-yellow-400 text-black px-4 py-2 text-sm font-black uppercase -skew-x-6 inline-block">首页</span>
+            <span class="border-2 border-white px-4 py-2 text-sm font-bold uppercase">地图</span>
+            <span class="border-2 border-white px-4 py-2 text-sm font-bold uppercase">服务器</span>
+          </nav>
+        </header>
+
+        <div class="relative p-4 grid lg:grid-cols-2 gap-6">
+          <div>
+            <h2 class="text-xl font-black uppercase mb-3 flex items-center gap-2">
+              <span class="inline-block h-3 w-3 bg-yellow-400 border-2 border-black"></span>
+              排行
+            </h2>
+            <div class="border-2 border-black divide-y-2 divide-black">
+              <div class="flex items-center gap-3 p-3 bg-yellow-100">
+                <span class="flex h-10 w-10 items-center justify-center border-2 border-black bg-yellow-400 font-black text-lg">1</span>
+                <div class="flex-1 min-w-0"><p class="font-bold truncate">星空鼠鼠</p><p class="text-xs text-neutral-500">积分榜</p></div>
+                <p class="font-mono-time text-xl font-bold">12840</p>
+              </div>
+              <div class="flex items-center gap-3 p-3 hover:bg-black hover:text-white">
+                <span class="flex h-10 w-10 items-center justify-center border-2 border-black font-black">2</span>
+                <div class="flex-1"><p class="font-bold">SurfKing</p></div>
+                <p class="font-mono-time font-bold">11902</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h2 class="text-xl font-black uppercase mb-3">最新记录</h2>
+            <div class="border-2 border-black p-4">
+              <p class="font-bold">星空鼠鼠</p>
+              <p class="font-mono text-sm truncate text-neutral-600">surf_utopia · main</p>
+              <p class="font-mono-time text-3xl font-black mt-2 tabular-nums">42.310</p>
+              <p class="text-xs text-neutral-500 mt-1">+0.000 WR</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative px-4 pb-4 grid grid-cols-3 gap-3">
+          <article class="border-2 border-black p-3 border-b-4 border-b-yellow-400">
+            <span class="text-xs font-black bg-black text-yellow-400 px-1">T4</span>
+            <p class="font-bold mt-2 truncate">surf_utopia</p>
+          </article>
+          <article class="border-2 border-black p-3 border-b-4 border-b-red-500"><span class="text-xs font-black text-red-600">T6</span><p class="font-bold mt-2 truncate">surf_mesa</p></article>
+          <article class="border-2 border-black p-3 border-b-4 border-b-emerald-500"><span class="text-xs font-black text-emerald-600">T2</span><p class="font-bold mt-2 truncate">surf_kitsune</p></article>
+        </div>
+      </div>
+      <p class="text-xs text-neutral-600"><strong>色板：</strong>黑 + 竞速黄 #facc15 · 浅黄高亮行 · 时间用超大 mono</p>
+    </section>
+
+    <!-- Comparison -->
+    <section class="mt-12 border-4 border-black bg-white overflow-hidden">
+      <div class="border-b-4 border-black bg-black text-white px-4 py-3 font-bold uppercase text-sm">四版对照</div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-neutral-100"><tr class="text-left">
+            <th class="p-3 font-bold">维度</th><th class="p-3">D 街机</th><th class="p-3">E 竞技 HUD</th><th class="p-3">F 像素</th><th class="p-3">G 速度表</th>
+          </tr></thead>
+          <tbody class="divide-y divide-black">
+            <tr><td class="p-3 font-bold">游戏感来源</td><td class="p-3">霓虹机台</td><td class="p-3">FPS 战术 UI</td><td class="p-3">像素 UI 套件</td><td class="p-3">竞速计时</td></tr>
+            <tr><td class="p-3 font-bold">背景</td><td class="p-3">深色</td><td class="p-3">浅灰 + 黑顶栏</td><td class="p-3">暖纸色 + 8px 网格</td><td class="p-3">白 + 斜纹</td></tr>
+            <tr><td class="p-3 font-bold">与现站迁移成本</td><td class="p-3">中（换色 + 暗色）</td><td class="p-3">低（最接近 C）</td><td class="p-3">中（主题 + 字体）</td><td class="p-3">低（组件级装饰）</td></tr>
+            <tr><td class="p-3 font-bold">信息密度</td><td class="p-3">高</td><td class="p-3">高</td><td class="p-3">高</td><td class="p-3">中高</td></tr>
+            <tr><td class="p-3 font-bold">推荐场景</td><td class="p-3">要酷、夜间浏览</td><td class="p-3">社区老玩家</td><td class="p-3">简约游戏风、可读性</td><td class="p-3">突出成绩/WR</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="mt-8 text-center text-xs text-neutral-500">实现阶段：选定方向后写入 spec → 再改 Tailwind 主题与组件，不直接动生产页。</p>
+  </div>
+  <script>
+    function show(id) {
+      ['d','e','f','g'].forEach(k => {
+        document.getElementById('dir-' + k).classList.toggle('hidden', k !== id);
+        const btn = document.getElementById('btn-' + k);
+        const active = k === id;
+        btn.className = active
+          ? 'border-2 border-black bg-black text-white px-4 py-2 text-sm font-bold'
+          : 'border-2 border-black bg-white px-4 py-2 text-sm font-bold';
+      });
+    }
+  </script>
+</body>
+</html>
