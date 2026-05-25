@@ -6,7 +6,11 @@ import AppHeader from './components/AppHeader.vue'
   <div class="flex min-h-screen flex-col">
     <AppHeader />
     <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
-      <RouterView />
+      <RouterView v-slot="{ Component, route }">
+        <transition name="page-fade" mode="out-in">
+          <component :is="Component" :key="route.path" />
+        </transition>
+      </RouterView>
     </main>
     <footer
       class="mt-auto border-t-2 border-px-ink py-6 text-center text-xs text-px-muted"

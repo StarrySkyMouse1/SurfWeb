@@ -97,8 +97,10 @@ export interface RecentRecord {
   auth: number
   playerName?: string
   map: string
+  tier?: number
   style: number
   track: number
+  stage?: number
   time: number
   timeFormatted: string
   date?: string

@@ -1,0 +1,131 @@
+@layer components {
+  .font-pixel {
+    font-family: var(--font-pixel);
+    letter-spacing: 0.02em;
+  }
+
+  .px-panel {
+    @apply border-2 border-px-ink bg-px-surface;
+    box-shadow: 4px 4px 0 var(--color-px-ink);
+  }
+
+  .px-panel-sm {
+    @apply border-2 border-px-ink bg-px-surface;
+    box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-table-head {
+    @apply border-b-2 border-px-ink bg-px-ink text-px-surface;
+  }
+
+  .px-row-hover {
+    @apply border-t border-px-ink transition-colors;
+  }
+
+  .px-row-hover:hover {
+    @apply bg-px-ink text-px-surface;
+  }
+
+  .px-row-hover:hover a {
+    @apply text-inherit;
+  }
+
+  .px-btn {
+    @apply border-2 border-px-ink bg-px-surface font-bold transition-[transform,box-shadow,colors] duration-75;
+    box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-btn:hover:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--color-px-ink);
+  }
+
+  .px-btn:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+
+  .px-btn-active {
+    @apply bg-px-ink text-px-surface;
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+
+  .px-chip {
+    @apply border-2 border-px-ink bg-px-surface font-pixel text-[10px] leading-none;
+    box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-chip-active {
+    @apply bg-px-ink text-px-surface;
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
+
+  .px-input {
+    @apply border-2 border-px-ink bg-px-surface outline-none focus:ring-2 focus:ring-px-accent;
+    box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-page-title {
+    @apply font-pixel text-sm tracking-wide text-px-ink;
+  }
+
+  .px-page-heading {
+    @apply text-lg font-bold leading-none;
+  }
+
+  .px-section-title {
+    @apply font-pixel text-sm;
+  }
+
+  .px-rank-cell {
+    @apply w-10 text-center font-pixel text-[11px];
+  }
+
+  .px-dot-divider {
+    @apply h-0.5;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--color-px-ink) 0 4px,
+      transparent 4px 8px
+    );
+  }
+
+  .px-map-placeholder {
+    image-rendering: pixelated;
+    background: linear-gradient(135deg, #d4d4d4 25%, transparent 25%) -4px 0,
+      linear-gradient(225deg, #d4d4d4 25%, transparent 25%) -4px 0,
+      linear-gradient(45deg, #d4d4d4 25%, transparent 25%),
+      linear-gradient(315deg, #d4d4d4 25%, #e5e5e5 25%);
+    background-size: 8px 8px;
+  }
+
+  .px-card-interactive {
+    @apply block overflow-hidden transition-[transform,box-shadow] duration-75;
+  }
+
+  .px-card-interactive:hover {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+
+  .px-en-subtitle {
+    @apply font-pixel text-[9px] text-px-muted;
+  }
+
+  .px-error-box {
+    @apply border-2 border-px-ink bg-px-surface p-4 text-sm;
+    box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-card-link {
+    @apply block overflow-hidden border-2 border-px-ink bg-px-surface transition-[transform,box-shadow] duration-75;
+    box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-card-link:hover {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+}

@@ -1,6 +1,6 @@
 import { onMounted, ref } from 'vue'
 import { apiGet } from '../api/client'
-import { buildMapImageUrl, type MapImageConfig } from '../utils/mapImageUrl'
+import { buildMapImageUrl, type MapImageConfig } from '../utils/display'
 
 let cached: MapImageConfig | null | undefined
 

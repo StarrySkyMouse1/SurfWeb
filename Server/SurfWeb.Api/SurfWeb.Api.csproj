@@ -8,13 +8,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="appsettings.Development.local.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="appsettings.Development.local.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SurfWeb.Application.Web\SurfWeb.Application.Web.csproj" />
-    <ProjectReference Include="..\SurfWeb.Application\SurfWeb.Application.csproj" />
-    <ProjectReference Include="..\SurfWeb.Infrastructure\SurfWeb.Infrastructure.csproj" />
+    <ProjectReference Include="..\Configurations\Configurations.csproj" />
+    <ProjectReference Include="..\Services\Services.csproj" />
   </ItemGroup>
 
 </Project>

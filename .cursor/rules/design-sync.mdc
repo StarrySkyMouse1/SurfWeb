@@ -2,10 +2,8 @@
 description: "[阻塞] 改代码必须同轮同步 doc/design.md"
 alwaysApply: true
 globs:
-  - SurfWeb.Api/**
-  - SurfWeb.Application/**
-  - SurfWeb.Infrastructure/**
-  - surfweb/**
+  - Server/SurfWeb.Api/**
+  - Web/**
 ---
 
 # [阻塞] 设计文档同步（SurfWeb）
@@ -19,10 +17,10 @@ globs:
 | 触发 | 示例 |
 |------|------|
 | 功能 / UI | 新页面、路由、Tab、筛选、文案、空状态、加载态 |
-| API | 新/改 `Controllers/V1/*`、路由、查询参数、响应字段 |
+| API | 新/改 `Controllers/*`、路由、查询参数、响应字段 |
 | 配置 | `appsettings.json`、`SurfWeb:Styles`、CORS、缓存秒数、`.env*` |
 | 数据 / 查询 | `ShavitDbContext`、实体、`Services/*` 查询逻辑、Shavit 表映射 |
-| DTO / 契约 | `Application/Dtos/*`、`ApiResponse` 包装、时间格式 |
+| DTO / 契约 | `Services/Dtos/*`、`SurfWeb.Api/Common/ApiResponse`、时间格式 |
 | 里程碑 | 阶段能力上线或范围收缩 → 更新 **§10** 的 ✅/未做；必要时改 `docs/superpowers/plans/2026-05-22-surfweb.md` 复选框 |
 
 **不触发**：纯重命名且无行为变化、仅注释、仅 `bin/`/`obj/`/`node_modules/`、用户明确「只回答问题不改文档」、改动仅在 `docs/superpowers/plans` 勾选且与 design §10 已一致。
@@ -73,12 +71,13 @@ globs:
 
 | 代码位置 | design 落点 |
 |----------|-------------|
-| `SurfWeb.Api/Controllers/V1/*.cs` | §5 |
-| `SurfWeb.Application/Queries/*QueryService.cs` | §5、§3.3 |
-| `SurfWeb.Application/Abstractions/IQueryServices.cs` | §5 |
-| `SurfWeb.Infrastructure/Repositories/*.cs` | §3、§5 |
-| `SurfWeb.Infrastructure/Persistence/ShavitDbContext.cs` | §3.1 |
-| `SurfWeb.Domain/Entities/*` | §3.1 |
+| `Server/SurfWeb.Api/Controllers/*.cs` | §5 |
+| `Server/Services/Services/*Service.cs` | §5、§3.3 |
+| `Server/Services/IServices/I*Service.cs` | §5 |
+| `Server/Repositories/*.cs` | §3、§5 |
+| `Server/Repositories/Persistence/ShavitDbContext.cs` | §3.1 |
+| `Server/Repositories/Entities/*` | §3.1 |
+| `Server/Configurations/SurfWebOptions.cs` | §7 |
 | `appsettings.json` / User Secrets | §7、§12 |
 | `surfweb/src/views/*.vue` | §6.2 |
 | `surfweb/src/components/*.vue` | §6.1、§6.3 |

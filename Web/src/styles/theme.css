@@ -1,0 +1,13 @@
+@theme {
+  --font-sans: "IBM Plex Sans", "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-pixel: Silkscreen, ui-monospace, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-px-ink: #121212;
+  --color-px-paper: #f3f1eb;
+  --color-px-surface: #ffffff;
+  --color-px-accent: #3d5afe;
+  --color-px-accent-soft: #e8edff;
+  --color-px-muted: #6b6b6b;
+}

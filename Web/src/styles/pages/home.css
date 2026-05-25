@@ -1,0 +1,112 @@
+@layer components {
+  .px-home-rank-cell {
+    @apply w-10 text-center font-pixel text-[11px] align-middle;
+  }
+
+  /** 首页排行 / 最新记录表体单元格（仅 px-3，与 table-fixed + 固定行高配合） */
+  .px-home-list-cell {
+    @apply px-3 align-middle;
+  }
+
+  /** 最新记录地图列：缩略图贴左、无左内边距，文字区保留右内边距 */
+  .px-home-recent-map-cell {
+    @apply p-0 align-middle;
+  }
+
+  .px-home-recent-map-link {
+    @apply flex h-14 max-h-14 w-full items-stretch gap-2 overflow-hidden pr-3 pl-0 hover:opacity-90;
+  }
+
+  .px-home-recent-map-link .px-map-thumb {
+    @apply h-14 w-20 shrink-0;
+  }
+
+  .px-home-recent-map-text {
+    @apply flex min-w-0 flex-1 flex-col justify-center overflow-hidden py-2;
+  }
+
+  .px-home-recent-map-title {
+    @apply flex min-w-0 flex-nowrap items-center gap-2 leading-tight;
+  }
+
+  .px-home-recent-map-name {
+    @apply min-w-0 flex-1 truncate font-bold;
+  }
+
+  /** 表头 + 10 行高度上限；超出裁剪，不显示滚动条、不撑开页面 */
+  .px-home-list-panel {
+    --px-home-row-h: 3.5rem;
+    --px-home-head-h: 2.75rem;
+    --px-home-table-block-h: calc(var(--px-home-head-h) + 10 * var(--px-home-row-h));
+    @apply flex w-full shrink-0 flex-col overflow-hidden border-2 border-px-ink bg-px-surface;
+    box-shadow: 4px 4px 0 var(--color-px-ink);
+  }
+
+  .px-home-list-table-wrap {
+    @apply w-full min-w-0 shrink-0 overflow-x-hidden overflow-y-hidden;
+    height: auto;
+    max-height: var(--px-home-table-block-h);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .px-home-list-table-wrap::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .px-home-list-table-wrap > table {
+    @apply w-full table-fixed border-collapse text-sm;
+  }
+
+  .px-home-list-table-wrap > table thead tr {
+    height: var(--px-home-head-h);
+  }
+
+  .px-home-list-table-wrap > table tbody tr {
+    height: var(--px-home-row-h);
+    max-height: var(--px-home-row-h);
+  }
+
+  .px-home-list-table-wrap > table td,
+  .px-home-list-table-wrap > table th {
+    @apply overflow-hidden;
+  }
+
+  .px-home-tables-grid > * {
+    @apply min-w-0 w-full;
+  }
+
+  .px-home-table-row {
+    @apply h-14 max-h-14 border-t border-px-ink transition-colors;
+  }
+
+  .px-home-table-row:hover {
+    @apply bg-px-ink text-px-surface;
+  }
+
+  .px-home-table-row:hover a {
+    @apply text-inherit;
+  }
+
+  .px-home-table-row-empty {
+    @apply h-14 max-h-14 border-t border-px-ink;
+  }
+
+  .px-home-list-cell-truncate {
+    @apply max-h-14 truncate;
+  }
+
+  .px-home-column-title {
+    @apply text-lg font-bold leading-none shrink-0;
+  }
+
+  .px-home-column-header {
+    @apply mb-3 flex flex-wrap items-end justify-between gap-2;
+  }
+
+  .px-home-tables-grid {
+    @apply grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-2 lg:gap-8;
+  }
+}

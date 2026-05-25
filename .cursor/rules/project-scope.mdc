@@ -11,8 +11,8 @@ alwaysApply: true
 
 | 范围 | 路径 | 说明 |
 |------|------|------|
-| 后端 | `SurfWeb.{Api,Application,Infrastructure}/**` | .NET 8 三层 |
-| 前端 | `surfweb/**` | Vue 3 + Vite + Tailwind |
+| 后端 | `Server/SurfWeb.Api`、`Server/Services`、`Server/Repositories`、`Server/Utils`、`Server/Configurations` | .NET 10 五层项目 |
+| 前端 | `Web/**` | Vue 3 + Vite + Tailwind |
 | 设计（唯一） | `doc/design.md` | 改行为必须同轮同步，见 `design-sync.mdc` |
 | 实施计划（辅助） | `docs/superpowers/plans/*.md` | 里程碑勾选；大功能上线时同轮更新 |
 | 非产品代码 | `docs/design-previews/**` | UI 静态预览，按需更新 |

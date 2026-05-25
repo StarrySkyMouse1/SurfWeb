@@ -1,0 +1,41 @@
+@layer components {
+  .px-table-data-cell {
+    @apply py-2 px-3 align-middle;
+  }
+
+  .px-table-cell-content {
+    @apply flex min-h-5 flex-col justify-center leading-tight;
+  }
+
+  .px-table-cell-secondary {
+    @apply mt-0.5 text-xs leading-tight;
+  }
+
+  .px-table-head-cell {
+    @apply py-2 px-3 font-semibold text-xs;
+  }
+
+  .px-table-head-pixel {
+    @apply py-2 font-pixel text-[10px] font-normal;
+  }
+
+  .px-table-row {
+    @apply h-14 border-t border-px-ink transition-colors;
+  }
+
+  .px-table-row:hover {
+    @apply bg-px-ink text-px-surface;
+  }
+
+  .px-table-row:hover a {
+    @apply text-inherit;
+  }
+
+  .px-table-row-empty {
+    @apply h-14 border-t border-px-ink;
+  }
+
+  .px-table-skeleton-row {
+    @apply border-t border-px-ink;
+  }
+}

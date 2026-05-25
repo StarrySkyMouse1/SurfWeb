@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { PAGINATION_BUTTON_CLASS, PAGINATION_NAV_CLASS } from '../constants/paginationBar'
 
 const props = withDefaults(
   defineProps<{
@@ -32,7 +31,7 @@ function goTo(next: number) {
 </script>
 
 <template>
-  <nav v-if="showNav" :class="PAGINATION_NAV_CLASS" aria-label="分页">
+  <nav v-if="showNav" class="px-pagination-nav" aria-label="分页">
     <p class="min-w-[13rem] tabular-nums text-px-muted">
       <template v-if="loading && !hasKnownTotal">
         共 — 条 · 第 {{ page }} / — 页
@@ -46,7 +45,7 @@ function goTo(next: number) {
       <button
         type="button"
         :class="[
-          PAGINATION_BUTTON_CLASS,
+          'px-pagination-btn',
           'disabled:cursor-not-allowed disabled:opacity-40',
           !canPrev && 'bg-px-paper',
         ]"
@@ -58,7 +57,7 @@ function goTo(next: number) {
       <button
         type="button"
         :class="[
-          PAGINATION_BUTTON_CLASS,
+          'px-pagination-btn',
           'disabled:cursor-not-allowed disabled:opacity-40',
           !canNext && 'bg-px-paper',
         ]"

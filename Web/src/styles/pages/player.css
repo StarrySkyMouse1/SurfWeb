@@ -1,0 +1,21 @@
+@layer components {
+  .px-player-completion-map-cell {
+    @apply p-0 align-middle;
+  }
+
+  .px-player-completion-map-link {
+    @apply flex h-14 max-h-14 w-full items-stretch gap-2 overflow-hidden pr-3 pl-0 hover:opacity-90;
+  }
+
+  .px-player-completion-map-link .px-map-thumb {
+    @apply h-14 w-20 shrink-0;
+  }
+
+  .px-player-completion-map-name {
+    @apply flex min-w-0 flex-1 items-center py-2 pr-0;
+  }
+
+  .px-player-completion-tier-cell {
+    @apply py-2 px-3 align-middle;
+  }
+}

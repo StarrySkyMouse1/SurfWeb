@@ -8,11 +8,11 @@
 
 ## 1. 产品目标
 
-SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提供地图、玩家、排行榜、最新记录等核心查询能力，并用一套足够明显的架构形态来展示 DDD 与传统三层架构的差异。
+SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提供地图、玩家、排行榜、最新记录等核心查询能力。
 
-当前版本的产品目标有两层：
+当前版本的产品目标：
 - 面向用户：提供可直接使用的成绩查询站点。
-- 面向学习：后端保留显著的 DDD 特征，方便对照聚合、值对象、领域事件、仓储、命令用例与查询侧的职责边界。
+- 面向维护：后端采用 **Api + Data 两层**，查询链路清晰，无 DDD 写侧样板代码。
 
 非目标：
 - 不提供用户登录、后台管理、成绩人工提交。
@@ -23,10 +23,10 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 ## 2. 当前实现摘要
 
-- 后端：.NET 10，强特征 DDD + CQRS 读写分离。
+- 后端：.NET 10，**Api + 四项目**（`Configurations`、`Utils`、`Repositories`、`Services`）。
 - 前端：Vue 3 + Vite + Tailwind，目录位于 `Web/`。
 - 数据源：Shavit MySQL，只读查询。
-- 本地 API 开发地址：`http://localhost:5240`，HTTPS 地址：`https://localhost:7182`。
+- 本地 API 开发地址：`http://localhost:5240`，HTTPS 地址：`https://localhost:7182`；开发环境提供 Swagger UI（`/swagger`）。
 - 前端默认 API 地址：`http://localhost:5240/api/v1`。
 
 当前核心能力：
@@ -34,24 +34,29 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 - 玩家摘要、玩家成绩、玩家完赛地图。
 - 全站排行榜、最新记录。
 - 配置接口：样式、地图图床；服务器实时状态（Steam A2S + 后台刷新）。
-- 教学型命令入口：`POST /api/v1/admin/runs`。
 
 ---
 
 ## 3. 代码范围与目录
 
-### 3.1 后端
+### 3.1 后端（解决方案项目）
 
-- `Server/SurfWeb.Api`：HTTP 适配层与组合根。
-- `Server/SurfWeb.Application`：用例编排，分 `Commands` 与 `Queries`。
-- `Server/SurfWeb.Domain`：聚合根、值对象、领域事件、领域服务接口、聚合仓储接口。
-- `Server/SurfWeb.Infrastructure`：EF Core、读侧仓储实现、写侧仓储实现、策略实现。
+| 项目 | 路径 | 职责 |
+|------|------|------|
+| `Configurations` | `Server/Configurations/` | `SurfWebOptions`、`AddSurfWebOptions`、CORS、`Middleware`、`ApiResponse`、`AddSurfWebWebHost` |
+| `Utils` | `Server/Utils/` | 无状态工具：`TimeFormatter`、`SiteLimits`、`CacheKeys`、服务器地址/地图名解析 |
+| `Repositories` | `Server/Repositories/` | 实体、`ShavitDbContext`、`IBaseRepository<T>`、`AddSurfWebRepositories` |
+| `Services` | `Server/Services/` | `IServices/*`、`Services/*`、DTO、查询缓存与 Steam 基础设施、`AddSurfWeb` |
+| `SurfWeb.Api` | `Server/SurfWeb.Api/` | Controller、组合根、`Program.cs` |
+
+依赖方向：`Configurations` ← `Utils` ← `Repositories` ← `Services` ← `SurfWeb.Api`。`Program.cs` 调用 `AddSurfWebOptions` + `AddSurfWeb`（注册仓储、服务、Steam/服务器后台）。
 
 ### 3.2 前端
 
 - `Web/`：Vue 3 单页应用。
 - 路由：`/`、`/maps`、`/maps/:name`、`/players/:auth`、`/servers`。
 - 兼容旧链接：`/rankings`、`/records` 重定向到首页。
+- **目录约定：** 跨页复用 `Web/src/components/`（`AppHeader`、`PaginationBar`、`MapPreviewImage`、`skeleton/SkeletonBar`）；各页 UI 与骨架内聚在 `views/<feature>/components/`，**统一**通过组件 prop `loading` 在同一 DOM 壳内切换 `SkeletonBar` 占位（不再维护独立 `Skeleton*.vue` 表/卡片副本）。公共仅保留 `SkeletonBar` 原子占位条。
 
 ### 3.3 文档
 
@@ -113,17 +118,17 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 - `GET /rankings`
   - 查询全站排行榜。
-  - 支持 `type`、`page`、`pageSize`。
+  - 支持 `type`：`points`（积分）、`completions`（主线完赛地图数）、`playtime`（在线时长，秒）、`wr`（持有主线 WR 的地图数）；`page`、`pageSize`。
   - **读缓存：** `RankingQueryService` 按 `type` 缓存全量 Top 100（`SiteLimits.MaxRankingsTotal`），`page`/`pageSize` 在内存切片；过期由 `SurfWeb:Cache:RankingsRefreshMinutes` 控制，**过期后下一次用户请求**触发重新查库（非后台定时任务）。
 
 - `GET /records/recent`
-  - 查询最新记录。
-  - 支持 `page`、`pageSize`，兼容 `limit`。
-  - **读缓存：** 全量 Top 100（dedupe + WR 计算后的 DTO 列表）单 key 缓存；过期由 `SurfWeb:Cache:RecentRefreshMinutes` 控制，懒刷新策略同上。
+  - 查询最新记录（仅 `playertimes`；不含 `stagetimes`）。缓存快照 `RecentRecordsSnapshot` 预计算四套列表，各最多 100 条、按**该条成绩的完成时间**降序：「全部」「主线」（`track=0`）、「奖励」（`track>0`）、「WR」（玩家打破 WR 的条目）。构建时在最近批次内按 `(玩家, 地图, track)` 去重，保留该玩家在该地图赛道上的**个人最快**一条（非全服地图最快），再取 Top 100。
+  - 支持 `page`、`pageSize`，兼容 `limit`；`filter`：`main` / `bonus` / `wr`（缺省为全部），分页在对应列表上切片，`meta.total` 为该筛选下的条数（≤100）。
+  - 响应项含 `tier`（地图难度，来自 `MapTier`）；`stage` 字段保留于 DTO 但首页不返回阶段条目。
+  - **读缓存：** 单 key `surfweb:records:recent`；过期由 `SurfWeb:Cache:RecentRefreshMinutes` 控制，懒刷新。
 
-- `GET /config/styles`
 - `GET /config/map-images`
-- `GET /config/servers`（静态配置摘要，不含在线玩家）
+- `GET /config/servers`（静态配置摘要，不含在线玩家；前端服务器页使用 `GET /servers` 实时接口）
 
 - `GET /servers`
   - 返回实时服务器状态（对齐旧版 `Steam/GetServerInfo` + 玩家列表）。
@@ -131,12 +136,10 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
   - 响应字段：`name`、`address`、`online`、`map`、`mapTier`、`players`、`maxPlayers`、`note`、`onlinePlayers[]`（`name`、`auth`、`durationSeconds`、`durationDisplay`）。
   - 实现：`ServerStatusRefresher` 后台每 `SurfWeb:ServerQuery:RefreshSeconds` 秒 UDP 查询；`GET` 在缓存过期时懒刷新；Steam 逻辑移植自 `Server/参考/SurfWebDefault/Utils/Steam/SteamUtil.cs`；地图 Tier / 玩家 `auth` 来自 Shavit（失败时仍返回 Steam 数据）。
 
-### 5.2 教学型写侧接口
+### 5.2 只读边界
 
-- `POST /api/v1/admin/runs`
-  - 用于展示 DDD 命令侧的流转。
-  - 输入包含玩家、地图、style、track、stage、时间、记录时间等字段。
-  - 该接口不承担首页查询职责，也不替代读侧排行榜接口。
+- 对外均为只读 `GET`（及配置类读接口）；无写侧/管理端点。
+- `ShavitDbContext.SaveChanges` 禁止持久化写入。
 
 ### 5.3 响应约定
 
@@ -153,7 +156,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 ### 5.4 读侧内存缓存
 
-- 实现：`IMemoryCache` + `IQueryCache` / `QueryCache`（`SurfWeb.Application/Caching`），在 `AddSurfWebApplication` 注册。
+- 实现：`IMemoryCache` + `IQueryCache` / `QueryCache`（`Services/Caching`），在 `AddSurfWebServices` 注册。
 - **全量快照（Top 100）：** `surfweb:rankings:*`、`surfweb:records:recent`；`RankingsRefreshMinutes` / `RecentRefreshMinutes`（默认 1 分钟）；内存分页。
 - **按查询参数缓存（地图）：** `surfweb:maps:list:*`、`surfweb:maps:detail:*`、`surfweb:maps:lb:*`；`MapsMinutes`（默认 5 分钟）、`LeaderboardSeconds`（默认 60 秒）。
 - **刷新策略：** 均为绝对过期 + **过期后下一次用户请求**才重新查库（无后台定时刷新）。
@@ -175,90 +178,60 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 - 顶栏品牌：**地满滑翔** + 英文点缀 **SURF RECORD**；Logo 为 `Web/public/brand-icon.png`；导航为**中文 + 英文码**。站点 `favicon` 同图。
 - 页内区块同为**中文主标题 + 英文像素小字**（如「最新记录」旁 RECENT）；表头等内容使用中文。
 
-主题常量与工具类：`Web/src/constants/pixelTheme.ts`、`Web/src/style.css`（`px-panel`、`px-btn`、`px-chip` 等）。
+主题与布局样式：入口 `Web/src/style.css`（`@import "tailwindcss"` 后按模块引入 `Web/src/styles/`）；`theme.css` 设计令牌、`base.css` 页面底、`components/pixel-ui.css` 面板/按钮/芯片、`components/table.css` 表格、`components/pagination.css` 分页、`pages/home.css` 首页双栏、`pages/player.css` 玩家完赛表、`pages/server.css` 服务器页、`tier.css` Tier 色类；固定表格每页 10 行在相关 View/组件内写死。前端工具：`Web/src/utils/format.ts`（时间/成绩/WR 格式化）、`Web/src/utils/display.ts`（图床 URL、Tier 色类、骨架行数、Steam 进服）。
 
 ### 6.2 页面
 
-- 首页：排行榜、最新记录；双栏列表固定 10 行 + 底部分页，表体区横向裁剪（`overflow-x-hidden`），分页栏处不出现横向滚动条；地图名等长文本在单元格内截断。加载时仅表体 `SkeletonTable`，底部分页始终为真实 `PaginationBar`（`loading` 时按钮禁用，已知总数时仍显示「共 N 条」文案）。首页真实表与骨架表均使用 `table-fixed` + 相同 `colgroup`：排行榜为「名次 3rem / 玩家自适应 / 积分 7rem」，最新记录为「玩家 32% / 地图自适应 / 时间 10rem」；多行骨架占位按纵向排列，避免加载态与数据态切换时列宽、行内文本和底栏发生跳动。
-- 服务器页（`/servers`）：顶栏为**当前地图名**（链至地图详情）+ Tier 芯片 + 在线/离线；主体为左右两张 **`px-panel-sm` 卡片**（约 2/3 地图预览 + 1/3 在线玩家列表，`gap-4` 分隔，风格同地图卡片）；「加入」进服按钮；数据来自 `GET /servers`（含 `onlinePlayers`），前端每 30s 轮询刷新。
-- 地图页：地图卡片列表，滚动加载；加载态 `SkeletonMapCard` 与 `MapCard` 同结构（16:9 预览、`p-4` 信息区、Tier/完赛/标题/WR 占位行），真实卡片 WR 行固定 `min-h-4`，避免骨架与内容切换时高度跳动。
-- 地图详情页：地图信息、排行榜、Bonus 切换；**同一套布局壳**内加载：首次进入时头图/Tab/表一并骨架，数据就绪后**一次切换**；排行榜加载态在 `LeaderboardTable` 内切换单元格（不替换整张表 DOM）；Tab 预留「主线 + 最多 6 个 Bonus」；分页加载文案占位 `共 — 条 · 第 n / — 页` 避免底栏跳动。
-- 玩家页：玩家摘要、成绩列表、完成地图；完成地图每页固定 10 行槽位（末页不足补空行），骨架屏同为 10 行，切换分页时高度与地图详情排行榜一致。完赛地图真实表与骨架表均使用 `table-fixed` + 相同 `colgroup`：地图自适应、Tier 4rem、时间 7rem、同步 6rem、日期 9rem，避免分页加载态与数据态切换时列宽抖动。
+- 首页：排行榜、最新记录；双栏 `items-start`（不按较高栏拉伸，避免表与分页之间留白），网格子项与 `.px-home-list-table-wrap > table` 均为 `w-full` + `table-fixed`，表体固定 10 行（`h-14` / `--px-home-table-block-h`），表格区高度随表头+行数自适应（`max-height` 上限 10 行），无固定留白；表格区 `overflow` 裁剪且不显示滚动条，行内容 `overflow-hidden` 不撑高页面；横向裁剪 `overflow-x-hidden`。`HomeRankingTable` / `HomeRecentTable` 在 `loading` 时于**同一** `colgroup`/表头下渲染 `SkeletonBar` 占位（末页行数由 `skeletonRowsForPage` 与数据态一致），底部分页始终为真实 `PaginationBar`。**最新记录**栏标题右侧为 `RecentRecordFilter`：全部 / 主线 / 奖励 / WR（各筛选独立 Top 100、按完成时间排序；不含阶段），切换时重置第 1 页并带 `filter` 请求 `/records/recent`。排行栏标题右侧 `RankingFilter`：积分 / 完赛 / 时长 / WR，切换时重置第 1 页并带 `type` 请求 `/rankings`；表头第三列随类型显示「积分」「完赛」「时长」「WR」（时长列用 `formatPlaytime` 格式化秒数）。列宽：排行「名次 3rem / 玩家 / 数值列 7rem」；最新记录「地图 42%（行高内左贴边缩略图 `MapPreviewImage` variant=`thumb`、无边框；地图名 `truncate` 与 `px-chip` Tier 同一行不换行 + 主线·Bonus 小字，不显示阶段）/ 玩家 / 时间 10rem」。
+- 服务器页（`/servers`）：`ServerInfoPanel` 在 `loading` 时于同一面板壳内渲染单条服务器占位（地图框 + 玩家列表 + 加入按钮）；顶栏为当前地图名 + Tier + 在线/离线；`GET /servers` 每 30s 轮询。
+- 地图页：`MapCard` 支持 `loading`，首屏/加载更多在同一网格内渲染占位卡片（与真实卡片同 DOM 结构）；WR 行 `min-h-4` 防高度跳动。
+- 地图详情页：`MapDetailHeader`、`MapDetailTabs`、`LeaderboardTable` 均 `loading` 同壳切换；首次进入头图/Tab/表一并占位；Tab 预留「主线 + 最多 6 个 Bonus」。
+- 玩家页：`PlayerProfileCard`、`PlayerCompletionsTable` 同壳 `loading`；完赛表 `table-fixed` + `colgroup`（地图 36% 含左贴边 `MapPreviewImage` thumb、Tier `px-chip`+`tierChipColorClass` 同 `MapCard` / 时间 / 同步 / 日期），`mapImageConfig` 来自 `useMapImageConfig`；末页行数由 `skeletonRowsForPage` 与数据态一致。
 
 ### 6.3 前端运行约定
 
+- **骨架屏约定：** 各业务组件 `loading` 时在原位置插入 `SkeletonBar`（或缩略图方框），禁止再为同一块 UI 单独复制一份 `SkeletonXxx.vue` 表/卡；改布局只改业务组件一处。
+- **组件路径：** `views/home/components/`（`HomeRankingTable`、`HomeRecentTable`、`RankingFilter`、`RecentRecordFilter`）、`views/maps/components/`（`MapCard`、`TierFilter`）、`views/map-detail/components/`（`MapDetailHeader`、`MapDetailTabs`、`LeaderboardTable`）、`views/players/components/`（`PlayerProfileCard`、`PlayerCompletionsTable`）、`views/servers/components/`（`ServerInfoPanel`）。
+- **单页应用（SPA）：** `vue-router` + `createWebHistory()`，导航统一用 `RouterLink`，仅 `joinServer` 使用 `steam://` 外链；`App.vue` 内 `RouterView` 带淡入淡出过渡；`scrollBehavior` 切换路由时平滑滚到顶部（浏览器后退恢复原滚动位置）。
 - 全局布局：`App.vue` 使用 `min-h-screen` + `flex-col`，`main` 占满剩余高度，页脚 `border-t` 在内容较少时仍贴齐视口底部。
 - `Web/.env.development` 默认：`VITE_API_BASE_URL=http://localhost:5240/api/v1`
 - 本地前端开发端口默认由 Vite 管理，后端 CORS 允许 `localhost:5173` 与 `127.0.0.1:5173`。
 
 ---
 
-## 7. Strong DDD 架构说明
+## 7. 后端两层架构
 
-### 7.1 为什么不是普通三层
+### 7.1 调用链
 
-传统三层通常是：
-- `Controller -> Service -> Repository -> Table Entity`
+```
+HTTP 请求
+  → SurfWeb.Api.Controllers
+  → SurfWeb.Services.*Service（缓存、业务拼装、DTO）
+  → SurfWeb.Repositories.*ReadRepository（EF 查 Shavit）
+  → 返回 JSON（ApiResponse 在 Api 层包装）
+```
 
-本项目当前刻意做成两条链路：
-- 读侧：`Controller -> Query Service -> Read Repository -> Read Model`
-- 写侧：`Controller -> Command UseCase -> Aggregate / Domain Service -> Repository Interface -> Infrastructure`
+- **Api 层**：路由、`/api/v1`、CORS、异常处理、读 API 最小响应延迟、Swagger（开发环境）。
+- **Services 层**：业务编排；Controller 只依赖 `SurfWeb.Services.IServices`。
+- **Repositories 层**：`ShavitDbContext` 与 `IBaseRepository<TEntity>`（只读 `IQueryable`）；**不**向 Controller 暴露 DbContext；具体查询在 Services 用 LINQ 编排。
 
-这样做的目的不是追求最省代码，而是让 DDD 特征足够明显，便于学习。
+### 7.2 目录约定
 
-### 7.2 写侧核心概念
+| 目录 | 说明 |
+|------|------|
+| `Server/Services/IServices/` | `IMapService`、`IPlayerService` 等 |
+| `Server/Services/Services/` | `MapService` 等；注入 `IBaseRepository<User/MapTier/PlayerTime/StageTime>` 编写查询 |
+| `Server/Repositories/` | `IBaseRepository.cs`、`BaseRepository.cs` |
+| `Server/Repositories/Persistence/` | `ShavitDbContext`（只读） |
+| `Server/Repositories/Entities/` | 表映射实体 |
+| `Server/Configurations/` | `SurfWebOptions`、`AddSurfWebOptions`、`Cors/`、`Middleware/`、`Common/ApiResponse`、`SurfWebWebHostExtensions` |
+| `Server/Utils/` | `Common/TimeFormatter`、`Constants/SiteLimits`、`Caching/CacheKeys`、`Servers/*Helper`、`*Parser`、`*Normalizer` |
+| `Server/Services/` | 另含 `Dtos/`、`Caching/`（`IQueryCache`）、`Servers/`（状态刷新）、`Steam/`；`AddSurfWeb` 组合注册 |
 
-聚合根：
-- `Player`
-- `Map`
-- `RunRecord`
+### 7.3 已移除内容
 
-值对象：
-- `PlayerId`
-- `MapName`
-- `StyleId`
-- `TrackId`
-- `StageId`
-- `RunTime`
-
-领域事件：
-- `RunRecordedDomainEvent`
-- `WorldRecordBrokenDomainEvent`
-
-领域服务接口：
-- `ICompletionPolicy`
-- `IWorldRecordPolicy`
-
-聚合仓储接口：
-- `IPlayerRepository`
-- `IMapRepository`
-- `IRunRecordRepository`
-
-### 7.3 读写分离的边界
-
-读侧负责：
-- 排行榜分页
-- 最近记录去重
-- 地图列表聚合视图
-- 玩家查询视图
-
-写侧负责：
-- 命令输入建模
-- 聚合行为
-- 规则判断
-- 领域事件触发
-- 仓储与提交边界
-
-### 7.4 当前教学性质的限制
-
-当前底层 Shavit 数据源仍按只读源处理，因此：
-- `EfUnitOfWork` 主要用于表达命令侧提交边界。
-- 写侧仓储主要用于演示 DDD 结构与规则编排。
-- 命令侧不会把数据回写进现有 Shavit 表。
-
-这意味着当前项目是：
-- 真实可用的读侧查询系统。
-- 明确可见的 DDD 写侧骨架。
+- DDD 聚合、值对象、写侧仓储、`RecordRunUseCase`、admin 写接口。
+- 原 `SurfWeb.Application`、`SurfWeb.Domain`、`SurfWeb.Infrastructure`、`SurfWeb.Application.Web` 四个项目。
 
 ---
 
@@ -271,7 +244,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 - `SurfWeb:CorsOrigins`
 - `SurfWeb:MinResponseDelaySeconds`（读 API 最小响应秒数，默认 `0.2`）
 - `SurfWeb:Cache`（`MapsMinutes`、`LeaderboardSeconds`；`RankingsRefreshMinutes`、`RecentRefreshMinutes` 默认 `1`）
-- `SurfWeb:Styles`
+- `SurfWeb:Styles`（仅服务端：解析 `DefaultStyleId` 并过滤 `playertimes`/`stagetimes`；无对外 HTTP 接口）
 - `SurfWeb:MapImages`：`BaseUrl` 使用 `https://example.com/surf-map-images/` 作为模板占位，真实图床目录放入本地配置；前端拼图为 `{BaseUrl}{地图名}{Extension}`
 - `SurfWeb:ServerQuery`：`RefreshSeconds`（后台 A2S 刷新间隔，默认 30）、`QueryTimeoutMs`（UDP 超时，默认 8000）
 - `SurfWeb:Servers[]`：公开默认值使用 `127.0.0.1:27015` 作为模板占位；真实服务器放入本地配置。字段包含 `Name`、`Address`（`connect host:port` 或 `host:port`）、可选 `Host`/`Port` 覆盖、`MaxPlayers` 占位。
@@ -290,6 +263,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 后端：
 - HTTP：`http://localhost:5240`
 - HTTPS：`https://localhost:7182`
+- 开发环境 Swagger UI：`/swagger`（仅 `ASPNETCORE_ENVIRONMENT=Development` 启用；`launchSettings.json` 的 `https` 配置会默认打开该页）
 
 前端：
 - `Web/.env.development` 指向 `http://localhost:5240/api/v1`
@@ -303,10 +277,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 ## 9. 测试与验证
 
 当前已建立的验证重点：
-- 应用层查询规则测试。
-- DDD 结构形状测试。
-- 聚合行为测试。
-- 命令用例测试。
+- 单元测试项目已移除；可按需在 `Services` 或独立测试项目中补回。
 
 本轮后端重构的基础验证命令：
 - `dotnet test Server/SurfWeb.slnx`
@@ -322,8 +293,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 计划中的后续工作：
 - 玩家页等其余读接口按需接入 `IQueryCache`。
 - 继续打磨移动端体验与空状态。
-- 按需扩展更完整的写侧业务场景。
-- 在保持读侧性能的前提下，继续补齐教学型 DDD 样例。
+- 按需将 `*QueryService` 按功能拆到 `Data/Features/*` 目录（组织优化，非新架构层）。
 
 ---
 
@@ -332,7 +302,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 只要出现以下变化，本文件必须同轮更新：
 - API 路径变化。
 - 前端目录或运行方式变化。
-- DDD 边界、聚合、值对象、命令侧结构变化。
+- 后端项目划分（Api/Data）或 Data 层目录约定变化。
 - 本地默认端口、环境变量、配置入口变化。
 
 禁止新建第二份总设计文档；所有总设计信息统一维护在本文件。

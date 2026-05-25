@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import { PX_BTN_ACTIVE_CLASS, PX_BTN_CLASS, PX_EN_SUBTITLE_CLASS } from '../constants/pixelTheme'
 
 const links = [
   { to: '/', label: '首页', code: 'HOME' },
@@ -27,20 +26,20 @@ const links = [
             />
           </div>
           <div>
-            <p class="text-lg font-bold leading-none">地满滑翔</p>
-            <p :class="[PX_EN_SUBTITLE_CLASS, 'mt-1']">SURF RECORD</p>
+            <p class="font-bold leading-none">地满滑翔</p>
+            <p class="px-en-subtitle mt-1">SURF RECORD</p>
           </div>
         </RouterLink>
-        <nav class="flex flex-wrap gap-2" aria-label="主导航">
+        <nav class="flex flex-wrap gap-2">
           <RouterLink
             v-for="link in links"
             :key="link.to"
             :to="link.to"
-            :class="[PX_BTN_CLASS, 'flex min-w-[4.5rem] flex-col items-center px-3 py-1.5 leading-tight']"
-            :active-class="PX_BTN_ACTIVE_CLASS"
+            class="px-btn flex min-w-[4.5rem] flex-col items-center px-3 py-1.5 leading-tight"
+            active-class="px-btn-active"
           >
-            <span class="text-sm font-bold">{{ link.label }}</span>
-            <span class="font-pixel text-[8px] opacity-80">{{ link.code }}</span>
+            <span class="font-pixel text-[10px]">{{ link.code }}</span>
+            <span class="text-xs">{{ link.label }}</span>
           </RouterLink>
         </nav>
       </div>
