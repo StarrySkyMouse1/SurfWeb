@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using SurfWeb.Configurations.Common;
-using SurfWeb.Services.IServices;
-using SurfWeb.Data.Dtos;
-using SurfWeb.Configurations;
+using SurfWeb.ServerStatus.IServices;
+using SurfWeb.Core.Dtos;
+using SurfWeb.Core.Options;
 
 namespace SurfWeb.Api.Controllers;
 
@@ -11,12 +11,12 @@ namespace SurfWeb.Api.Controllers;
 [Route("api/v1/config")]
 public sealed class ConfigController(
     IOptions<SurfWebOptions> options,
-    IServerService serverQuery) : ControllerBase
+    IServerStatusService serverQuery) : ControllerBase
 {
     /// <summary>
-    /// è·å–åœ°å›¾å°é¢å›¾åºŠé…ç½®ã€‚
+    /// »ñÈ¡µØÍ¼·âÃæÍ¼´²ÅäÖÃ¡£
     /// </summary>
-    /// <returns>å›¾åºŠ BaseUrl ä¸æ‰©å±•åã€‚</returns>
+    /// <returns>Í¼´² BaseUrl ÓëÀ©Õ¹Ãû¡£</returns>
     [HttpGet("map-images")]
     public ActionResult<ApiResponse<MapImageConfigDto>> MapImages()
     {
@@ -26,10 +26,10 @@ public sealed class ConfigController(
     }
 
     /// <summary>
-    /// è·å–é…ç½®ä¸­çš„æœåŠ¡å™¨åˆ—è¡¨ï¼ˆé™æ€ä¿¡æ¯ï¼Œä¸å«å®æ—¶çŠ¶æ€ï¼‰ã€‚
+    /// »ñÈ¡ÅäÖÃÖĞµÄ·şÎñÆ÷ÁĞ±í£¨¾²Ì¬ĞÅÏ¢£¬²»º¬ÊµÊ±×´Ì¬£©¡£
     /// </summary>
-    /// <param name="ct">å–æ¶ˆä»¤ç‰Œã€‚</param>
-    /// <returns>æœåŠ¡å™¨åç§°ã€åœ°å€ã€å ä½åœ°å›¾ç­‰ã€‚</returns>
+    /// <param name="ct">È¡ÏûÁîÅÆ¡£</param>
+    /// <returns>·şÎñÆ÷Ãû³Æ¡¢µØÖ·¡¢Õ¼Î»µØÍ¼µÈ¡£</returns>
     [HttpGet("servers")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ServerInfoDto>>>> Servers(CancellationToken ct)
     {

@@ -1,13 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SurfWeb.Services.IServices;
-using SurfWeb.Data.Caching;
 using SurfWeb.Utils.Caching;
 using SurfWeb.Utils.Common;
-using SurfWeb.Data.Dtos;
-using SurfWeb.Configurations;
+using SurfWeb.Core.Dtos;
+using SurfWeb.Core.Options;
 using SurfWeb.Repositories;
-using SurfWeb.Repositories.Entities;
+using SurfWeb.Core.Models;
 
 namespace SurfWeb.Services;
 
@@ -340,4 +339,12 @@ public sealed class MapService(
 
     private Task<string?> GetNameAsync(int auth, CancellationToken ct) =>
         users.Where(u => u.Auth == auth).Select(u => u.Name).FirstOrDefaultAsync(ct);
+
+    public async Task<int?> GetMapTierByMapNameAsync(string mapName, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(mapName))
+            return null;
+        var row = await mapTiers.FirstOrDefaultAsync(m => m.Map == mapName, ct);
+        return row?.Tier;
+    }
 }

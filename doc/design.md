@@ -23,7 +23,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 ## 2. 当前实现摘要
 
-- 后端：.NET 10，**Api + 四项目**（`Configurations`、`Utils`、`Repositories`、`Services`）。
+- 后端：.NET 10，**Api + 五项目**（`Configurations`、`Utils`、`Repositories`、`Services`、`SurfWeb.ServerStatus`）。
 - 前端：Vue 3 + Vite + Tailwind，目录位于 `Web/`。
 - 数据源：Shavit MySQL，只读查询。
 - 本地 API 开发地址：`http://localhost:5240`，HTTPS 地址：`https://localhost:7182`；开发环境提供 Swagger UI（`/swagger`）。
@@ -43,13 +43,15 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 | 项目 | 路径 | 职责 |
 |------|------|------|
-| `Configurations` | `Server/Configurations/` | `SurfWebOptions`、`AddSurfWebOptions`、CORS、`Middleware`、`ApiResponse`、`AddSurfWebWebHost` |
-| `Utils` | `Server/Utils/` | 无状态工具：`TimeFormatter`、`SiteLimits`、`CacheKeys`、服务器地址/地图名解析 |
-| `Repositories` | `Server/Repositories/` | 实体、`ShavitDbContext`、`IBaseRepository<T>`、`AddSurfWebRepositories` |
-| `Services` | `Server/Services/` | `IServices/*`、`Services/*`、DTO、查询缓存与 Steam 基础设施、`AddSurfWeb` |
+| `SurfWeb.Core` | `Server/SurfWeb.Core/` | `Models/`、`Dtos/`、`Enums/`、`Options/`、`Constants/`（`SiteLimits`） |
+| `Configurations` | `Server/Configurations/` | `DependencyInjection/*`、CORS、`Middleware`、`Common/ApiResponse`（绑定 `SurfWeb.Core.Options`，无独立 Options 项目内目录） |
+| `Utils` | `Server/Utils/` | 无状态工具与读侧缓存：`TimeFormatter`、`Caching/`（`CacheKeys`、`IQueryCache`、`QueryCache` 等）、服务器地址/地图名解析；`AddSurfWebQueryCache` |
+| `Repositories` | `Server/Repositories/` | `ShavitDbContext`、`IBaseRepository<T>`、`AddSurfWebRepositories` |
+| `Services` | `Server/Services/` | `IServices/*`、`Services/*`、`AddSurfWeb` / `AddSurfWebData` |
+| `SurfWeb.ServerStatus` | `Server/SurfWeb.ServerStatus/` | `IServices/`、`Models/`、`Services/`、`Steam/`；**不**引用 `Repositories`，Shavit 补充经 `IMapService` / `IUserService` |
 | `SurfWeb.Api` | `Server/SurfWeb.Api/` | Controller、组合根、`Program.cs` |
 
-依赖方向：`Configurations` ← `Utils` ← `Repositories` ← `Services` ← `SurfWeb.Api`。`Program.cs` 调用 `AddSurfWebOptions` + `AddSurfWeb`（注册仓储、服务、Steam/服务器后台）。
+依赖方向：`SurfWeb.Core`（含 Options）← `Utils` ← `Repositories` ← `Services` ← `SurfWeb.ServerStatus` ← `SurfWeb.Api`；`Configurations` 引用 `Core` 负责 Options 绑定与横切中间件。`Program.cs`：`AddSurfWebWebHost` 等横切配置后，`AddSurfWeb`（仓储 + Services）、`AddSurfWebServerStatus`（Steam + 在线状态）。
 
 ### 3.2 前端
 
@@ -118,12 +120,14 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 - `GET /rankings`
   - 查询全站排行榜。
-  - 支持 `type`：`points`（积分）、`completions`（主线完赛地图数）、`playtime`（在线时长，秒）、`wr`（持有主线 WR 的地图数）；`page`、`pageSize`。
-  - **读缓存：** `RankingQueryService` 按 `type` 缓存全量 Top 100（`SiteLimits.MaxRankingsTotal`），`page`/`pageSize` 在内存切片；过期由 `SurfWeb:Cache:RankingsRefreshMinutes` 控制，**过期后下一次用户请求**触发重新查库（非后台定时任务）。
+  - 支持 `type`（`RankingType` 枚举，查询参数仍为小写字符串，大小写不敏感）：`points`（积分）、`completions`（有成绩的不重复地图/赛道数）、`playtime`（在线时长，秒）、`wr`（持有 WR 条目的数量排行）；非法值返回 400；`page`、`pageSize`。
+  - `type=completions` 时可选 `completionScope`（`TrackRankingScope` 枚举，大小写不敏感，缺省 `main`）：`main`（主线 `track=0` 每图计 1）、`bonus`（奖励 `track>0` 每图每赛道计 1）；两套独立缓存 key。
+  - `type=wr` 时可选 `wrScope`（`WrRankingScope` 枚举，大小写不敏感，缺省 `main`）：`main`（主线 `track=0` 每图一条 WR）、`bonus`（奖励赛道 `track>0` 每图每赛道一条 WR）、`stage`（`stagetimes` 每图每赛道每阶段一条 WR）；三套独立缓存 key。
+  - **读缓存：** `RankingService` 按 `type`（完成/WR 另按 scope）缓存全量 Top 100（`SiteLimits.MaxRankingsTotal`），`page`/`pageSize` 在内存切片；过期由 `SurfWeb:Cache:RankingsRefreshMinutes` 控制，**过期后下一次用户请求**触发重新查库（非后台定时任务）。
 
 - `GET /records/recent`
   - 查询最新记录（仅 `playertimes`；不含 `stagetimes`）。缓存快照 `RecentRecordsSnapshot` 预计算四套列表，各最多 100 条、按**该条成绩的完成时间**降序：「全部」「主线」（`track=0`）、「奖励」（`track>0`）、「WR」（玩家打破 WR 的条目）。构建时在最近批次内按 `(玩家, 地图, track)` 去重，保留该玩家在该地图赛道上的**个人最快**一条（非全服地图最快），再取 Top 100。
-  - 支持 `page`、`pageSize`，兼容 `limit`；`filter`：`main` / `bonus` / `wr`（缺省为全部），分页在对应列表上切片，`meta.total` 为该筛选下的条数（≤100）。
+  - 支持 `page`、`pageSize`，兼容 `limit`；`filter`（`RecentRecordFilter` 枚举，大小写不敏感，缺省全部）：`all` / `main` / `stage`（`stagetimes`）/ `bonus` / `wr`；`filter=wr` 时可选 `wrScope`（`WrRankingScope`）：`main` / `stage` / `bonus`；非法值 400；各列表独立 Top 100、按完成时间降序，内存分页。
   - 响应项含 `tier`（地图难度，来自 `MapTier`）；`stage` 字段保留于 DTO 但首页不返回阶段条目。
   - **读缓存：** 单 key `surfweb:records:recent`；过期由 `SurfWeb:Cache:RecentRefreshMinutes` 控制，懒刷新。
 
@@ -134,7 +138,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
   - 返回实时服务器状态（对齐旧版 `Steam/GetServerInfo` + 玩家列表）。
   - 查询参数：`refresh`（可选，`true` 时强制立即 Steam A2S 刷新）。
   - 响应字段：`name`、`address`、`online`、`map`、`mapTier`、`players`、`maxPlayers`、`note`、`onlinePlayers[]`（`name`、`auth`、`durationSeconds`、`durationDisplay`）。
-  - 实现：`ServerStatusRefresher` 后台每 `SurfWeb:ServerQuery:RefreshSeconds` 秒 UDP 查询；`GET` 在缓存过期时懒刷新；Steam 逻辑移植自 `Server/参考/SurfWebDefault/Utils/Steam/SteamUtil.cs`；地图 Tier / 玩家 `auth` 来自 Shavit（失败时仍返回 Steam 数据）。
+  - 实现：`SurfWeb.ServerStatus` 中 `ServerStatusRefresher` 后台每 `SurfWeb:ServerQuery:RefreshSeconds` 秒 UDP 查询；`GET` 在缓存过期时懒刷新；Steam 逻辑移植自 `Server/参考/SurfWebDefault/Utils/Steam/SteamUtil.cs`；地图 Tier / 玩家 `auth` 经 `IMapService.GetMapTierByMapNameAsync`、`IUserService.GetAuthsByNamesAsync` 补充（失败时仍返回 Steam 数据）。
 
 ### 5.2 只读边界
 
@@ -143,9 +147,9 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 ### 5.3 响应约定
 
-统一返回：
-- 成功：`{ data, meta? }`
-- 失败：`{ error: { code, message } }`
+统一返回（`Configurations/Common/ApiResponse`）：
+- 成功：`ApiResponse<T>` → `{ data, meta? }`（Controller 使用具体 DTO 泛型，如 `MapDetailDto`）
+- 失败：Controller 用 `ApiResponse<T>.Fail(ApiErrorCode, message?)`；错误码枚举 `ApiErrorCode` + `ApiErrorDescription` 特性（中文说明）；全局异常中间件直接序列化 `{ error: { code, message } }`
 
 读 API（`/api/v1/*`，不含 `/api/v1/admin/*`）经 `MinimumResponseDelayMiddleware` 保证**最短响应时间**：`SurfWeb:MinResponseDelaySeconds`（默认 `0.2`）。实际处理快于该值时补齐等待；慢于该值则处理完立即返回。设为 `0` 可关闭。
 
@@ -156,7 +160,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 ### 5.4 读侧内存缓存
 
-- 实现：`IMemoryCache` + `IQueryCache` / `QueryCache`（`Services/Caching`），在 `AddSurfWebServices` 注册。
+- 实现：`IMemoryCache` + `IQueryCache` / `QueryCache`（`Utils/Caching`），经 `AddSurfWebQueryCache` 注册（`AddSurfWeb` → `AddSurfWebServices` 内调用）。
 - **全量快照（Top 100）：** `surfweb:rankings:*`、`surfweb:records:recent`；`RankingsRefreshMinutes` / `RecentRefreshMinutes`（默认 1 分钟）；内存分页。
 - **按查询参数缓存（地图）：** `surfweb:maps:list:*`、`surfweb:maps:detail:*`、`surfweb:maps:lb:*`；`MapsMinutes`（默认 5 分钟）、`LeaderboardSeconds`（默认 60 秒）。
 - **刷新策略：** 均为绝对过期 + **过期后下一次用户请求**才重新查库（无后台定时刷新）。
@@ -182,7 +186,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 ### 6.2 页面
 
-- 首页：排行榜、最新记录；双栏 `items-start`（不按较高栏拉伸，避免表与分页之间留白），网格子项与 `.px-home-list-table-wrap > table` 均为 `w-full` + `table-fixed`，表体固定 10 行（`h-14` / `--px-home-table-block-h`），表格区高度随表头+行数自适应（`max-height` 上限 10 行），无固定留白；表格区 `overflow` 裁剪且不显示滚动条，行内容 `overflow-hidden` 不撑高页面；横向裁剪 `overflow-x-hidden`。`HomeRankingTable` / `HomeRecentTable` 在 `loading` 时于**同一** `colgroup`/表头下渲染 `SkeletonBar` 占位（末页行数由 `skeletonRowsForPage` 与数据态一致），底部分页始终为真实 `PaginationBar`。**最新记录**栏标题右侧为 `RecentRecordFilter`：全部 / 主线 / 奖励 / WR（各筛选独立 Top 100、按完成时间排序；不含阶段），切换时重置第 1 页并带 `filter` 请求 `/records/recent`。排行栏标题右侧 `RankingFilter`：积分 / 完赛 / 时长 / WR，切换时重置第 1 页并带 `type` 请求 `/rankings`；表头第三列随类型显示「积分」「完赛」「时长」「WR」（时长列用 `formatPlaytime` 格式化秒数）。列宽：排行「名次 3rem / 玩家 / 数值列 7rem」；最新记录「地图 42%（行高内左贴边缩略图 `MapPreviewImage` variant=`thumb`、无边框；地图名 `truncate` 与 `px-chip` Tier 同一行不换行 + 主线·Bonus 小字，不显示阶段）/ 玩家 / 时间 10rem」。
+- 首页：排行榜、最新记录；双栏 `items-start`（不按较高栏拉伸，避免表与分页之间留白），网格子项与 `.px-home-list-table-wrap > table` 均为 `w-full` + `table-fixed`，表体固定 10 行（`h-14` / `--px-home-table-block-h`），表格区高度随表头+行数自适应（`max-height` 上限 10 行），无固定留白；表格区 `overflow` 裁剪且不显示滚动条，行内容 `overflow-hidden` 不撑高页面；横向裁剪 `overflow-x-hidden`。`HomeRankingTable` / `HomeRecentTable` 在 `loading` 时于**同一** `colgroup`/表头下渲染 `SkeletonBar` 占位（末页行数由 `skeletonRowsForPage` 与数据态一致），底部分页始终为真实 `PaginationBar`。**最新记录**栏标题右侧为 `RecentRecordFilter`：浏览分栏芯片（`完成·全部` / `完成·主线` / `完成·阶段` / `完成·奖励`）+ WR 分栏芯片（`WR·主线` / `WR·阶段` / `WR·奖励`），切换时重置第 1 页；`filter` + 可选 `wrScope` 请求 `/records/recent`（阶段来自 `stagetimes`，WR 分范围与排行语义一致）。排行栏标题右侧 `RankingFilter`：积分 / 时长 + **完成**、**WR** 分栏芯片（左 `完成·主线` / `WR·主线` 等，右 ▼ 弹出范围；完成仅主线/奖励，WR 含主线/阶段/奖励）；`type=completions&completionScope=` / `type=wr&wrScope=` 请求 `/rankings`，切换时重置第 1 页；表头第三列随类型显示「积分」「完成」「时长」「WR」（时长列用 `formatPlaytime`：`X天 X小时`，不显示分/秒）。列宽：排行「名次 3rem / 玩家 / 数值列 7rem（时长筛选时为 11rem，`w-44`）」；最新记录「地图 42%（行高内左贴边缩略图 `MapPreviewImage` variant=`thumb`（`mask-image` 左实右透明渐变）；地图名单独占一行 `truncate`；第二行：左 `px-chip` Tier、右赛道类型小字（主线/Bn/阶段N，与 Tier 垂直居中）/ 玩家 / 时间 10rem」；**窄屏（≤640px）** 隐藏地图缩略图。
 - 服务器页（`/servers`）：`ServerInfoPanel` 在 `loading` 时于同一面板壳内渲染单条服务器占位（地图框 + 玩家列表 + 加入按钮）；顶栏为当前地图名 + Tier + 在线/离线；`GET /servers` 每 30s 轮询。
 - 地图页：`MapCard` 支持 `loading`，首屏/加载更多在同一网格内渲染占位卡片（与真实卡片同 DOM 结构）；WR 行 `min-h-4` 防高度跳动。
 - 地图详情页：`MapDetailHeader`、`MapDetailTabs`、`LeaderboardTable` 均 `loading` 同壳切换；首次进入头图/Tab/表一并占位；Tab 预留「主线 + 最多 6 个 Bonus」。
@@ -191,7 +195,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 ### 6.3 前端运行约定
 
 - **骨架屏约定：** 各业务组件 `loading` 时在原位置插入 `SkeletonBar`（或缩略图方框），禁止再为同一块 UI 单独复制一份 `SkeletonXxx.vue` 表/卡；改布局只改业务组件一处。
-- **组件路径：** `views/home/components/`（`HomeRankingTable`、`HomeRecentTable`、`RankingFilter`、`RecentRecordFilter`）、`views/maps/components/`（`MapCard`、`TierFilter`）、`views/map-detail/components/`（`MapDetailHeader`、`MapDetailTabs`、`LeaderboardTable`）、`views/players/components/`（`PlayerProfileCard`、`PlayerCompletionsTable`）、`views/servers/components/`（`ServerInfoPanel`）。
+- **组件路径：** `views/home/components/`（`HomeRankingTable`、`HomeRecentTable`、`RankingFilter`、`FilterSplitChip`（完成/WR/最新记录分栏芯片 + 范围气泡）、`RecentRecordFilter`）、`ChipFilter` / 筛选条共用 `.px-filter-chip-row`（同行垂直居中，选中无 `translate` 避免高低不齐）、`views/maps/components/`（`MapCard`、`TierFilter`）、`views/map-detail/components/`（`MapDetailHeader`、`MapDetailTabs`、`LeaderboardTable`）、`views/players/components/`（`PlayerProfileCard`、`PlayerCompletionsTable`）、`views/servers/components/`（`ServerInfoPanel`）。
 - **单页应用（SPA）：** `vue-router` + `createWebHistory()`，导航统一用 `RouterLink`，仅 `joinServer` 使用 `steam://` 外链；`App.vue` 内 `RouterView` 带淡入淡出过渡；`scrollBehavior` 切换路由时平滑滚到顶部（浏览器后退恢复原滚动位置）。
 - 全局布局：`App.vue` 使用 `min-h-screen` + `flex-col`，`main` 占满剩余高度，页脚 `border-t` 在内容较少时仍贴齐视口底部。
 - `Web/.env.development` 默认：`VITE_API_BASE_URL=http://localhost:5240/api/v1`
@@ -206,27 +210,37 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 ```
 HTTP 请求
   → SurfWeb.Api.Controllers
-  → SurfWeb.Services.*Service（缓存、业务拼装、DTO）
-  → SurfWeb.Repositories.*ReadRepository（EF 查 Shavit）
+  → IMapService / IPlayerService / …（Shavit 只读查询 + 缓存 + DTO）
+  → IServerStatusService（Steam A2S + 内存快照，可选经 IServices 补 Tier/auth）
+  → IBaseRepository<T>（EF 查 Shavit，仅 Services/Queries 使用）
   → 返回 JSON（ApiResponse 在 Api 层包装）
 ```
 
 - **Api 层**：路由、`/api/v1`、CORS、异常处理、读 API 最小响应延迟、Swagger（开发环境）。
-- **Services 层**：业务编排；Controller 只依赖 `SurfWeb.Services.IServices`。
-- **Repositories 层**：`ShavitDbContext` 与 `IBaseRepository<TEntity>`（只读 `IQueryable`）；**不**向 Controller 暴露 DbContext；具体查询在 Services 用 LINQ 编排。
+- **Services 层**：`IServices` / `Services` 编排 Shavit 查询与读缓存；Controller **不**直接依赖仓储。
+- **ServerStatus 层**：Steam UDP、服务器状态缓存与后台刷新；**禁止**引用 `Repositories`，仅通过 `IMapService` / `IUserService` 读 Shavit。
+- **Repositories 层**：`ShavitDbContext` 与 `IBaseRepository<TEntity>`（只读 `IQueryable`）；**不**向 Controller 暴露 DbContext。
 
 ### 7.2 目录约定
 
 | 目录 | 说明 |
 |------|------|
-| `Server/Services/IServices/` | `IMapService`、`IPlayerService` 等 |
+| `Server/Services/IServices/` | `IMapService`、`IPlayerService`、`IRankingService`、`IRecordService`、`IUserService` |
 | `Server/Services/Services/` | `MapService` 等；注入 `IBaseRepository<User/MapTier/PlayerTime/StageTime>` 编写查询 |
+| `Server/SurfWeb.ServerStatus/IServices/` | `IServerStatusService`（读列表 + 可选 `RefreshAsync`） |
+| `Server/SurfWeb.ServerStatus/Models/` | `CachedServerStatus`、`CachedOnlinePlayer` |
+| `Server/SurfWeb.ServerStatus/Services/` | `ServerStatusService`、`ServerStatusRefresher`（内存快照 + Steam 刷新 + `BackgroundService`） |
+| `Server/SurfWeb.ServerStatus/Steam/` | `SteamServerQuery`（静态 A2S UDP）；`DependencyInjection.cs` 在根目录 |
 | `Server/Repositories/` | `IBaseRepository.cs`、`BaseRepository.cs` |
 | `Server/Repositories/Persistence/` | `ShavitDbContext`（只读） |
-| `Server/Repositories/Entities/` | 表映射实体 |
-| `Server/Configurations/` | `SurfWebOptions`、`AddSurfWebOptions`、`Cors/`、`Middleware/`、`Common/ApiResponse`、`SurfWebWebHostExtensions` |
-| `Server/Utils/` | `Common/TimeFormatter`、`Constants/SiteLimits`、`Caching/CacheKeys`、`Servers/*Helper`、`*Parser`、`*Normalizer` |
-| `Server/Services/` | 另含 `Dtos/`、`Caching/`（`IQueryCache`）、`Servers/`（状态刷新）、`Steam/`；`AddSurfWeb` 组合注册 |
+| `Server/SurfWeb.Core/Models/` | Shavit 表映射实体（`User`、`PlayerTime` 等） |
+| `Server/SurfWeb.Core/Dtos/` | API 响应 DTO（`MapDetailDto`、`RankingEntryDto` 等） |
+| `Server/SurfWeb.Core/Enums/` | 如 `RankingType`、`RecentRecordFilter` |
+| `Server/SurfWeb.Core/Options/` | `SurfWebOptions`、`CacheOptions`、`ServerInfoOptions` 等（`appsettings` 的 `SurfWeb` 节） |
+| `Server/SurfWeb.Core/Constants/` | `SiteLimits`（Top 100 等） |
+| `Server/Configurations/` | `DependencyInjection/`、`Cors/`、`Middleware/`、`Common/ApiResponse` |
+| `Server/Utils/` | `Common/TimeFormatter`、`Caching/`（`CacheKeys`、`IQueryCache`、`QueryCache`、`CachedPageList`、`RecentRecordsSnapshot`）、`Servers/`（`ServerEndpointParser`、`SteamMapNameNormalizer`）；`AddSurfWebQueryCache` |
+| `Server/Services/` | `DependencyInjection.AddSurfWeb` 注册仓储 + Services（含 `AddSurfWebQueryCache`） |
 
 ### 7.3 已移除内容
 
@@ -250,7 +264,7 @@ HTTP 请求
 - `SurfWeb:Servers[]`：公开默认值使用 `127.0.0.1:27015` 作为模板占位；真实服务器放入本地配置。字段包含 `Name`、`Address`（`connect host:port` 或 `host:port`）、可选 `Host`/`Port` 覆盖、`MaxPlayers` 占位。
 
 本地开发（二选一，均不提交 Git）：
-- **推荐：** 复制 `Server/SurfWeb.Api/appsettings.Development.local.json.example` 为 `appsettings.Development.local.json`，填入数据库、地图图床和服务器地址；`Program.cs` 在 `Development` 下会自动加载该文件（见 `.gitignore` 的 `appsettings.*.local.json`）。
+- **推荐：** 复制 `Server/SurfWeb.Api/appsettings.Development.local.json.example` 为 `appsettings.Development.local.json`，填入数据库、地图图床和服务器地址；`AddSurfWebApi` → `AddSurfWebLocalConfiguration` 会加载 `appsettings.local.json` 与 `appsettings.{Environment}.local.json`（见 `.gitignore`）。
 - 或使用 User Secrets：`dotnet user-secrets set "ConnectionStrings:Shavit" "…"`（`UserSecretsId` 见 `SurfWeb.Api.csproj`）。
 
 阿里云 RDS：白名单需包含本机公网 IP；本实例连接串使用 `SslMode=None`（不支持 SSL）。
@@ -293,7 +307,7 @@ HTTP 请求
 计划中的后续工作：
 - 玩家页等其余读接口按需接入 `IQueryCache`。
 - 继续打磨移动端体验与空状态。
-- 按需将 `*QueryService` 按功能拆到 `Data/Features/*` 目录（组织优化，非新架构层）。
+- 已完成：`Services` 仅 Shavit 查库（`IServices`/`Services`）；Steam/在线状态迁至 `SurfWeb.ServerStatus`。
 
 ---
 

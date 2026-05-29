@@ -17,7 +17,7 @@ defineProps<{
   detail?: MapDetail | null
 }>()
 
-const track = defineModel<number>({ default: 0 })
+const track = defineModel<number>('track', { default: 0 })
 </script>
 
 <template>

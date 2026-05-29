@@ -1,4 +1,4 @@
-using SurfWeb.Data.Dtos;
+using SurfWeb.Core.Dtos;
 
 namespace SurfWeb.Services.IServices;
 
@@ -11,4 +11,7 @@ public interface IMapService
 
     Task<(IReadOnlyList<LeaderboardEntryDto> Items, int Total)> GetLeaderboardAsync(
         string mapName, byte track, byte? stage, int page, int pageSize, CancellationToken ct = default);
+
+    /// <summary>??????????????? Tier?????????</summary>
+    Task<int?> GetMapTierByMapNameAsync(string mapName, CancellationToken ct = default);
 }

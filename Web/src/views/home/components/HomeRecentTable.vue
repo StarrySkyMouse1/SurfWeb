@@ -25,6 +25,7 @@ const rowIndices = computed(() => {
 })
 
 function trackLabel(row: RecentRecord): string {
+  if (row.stage != null) return `阶段${row.stage}`
   if (row.track > 0) return `B${row.track}`
   return '主线'
 }
@@ -55,18 +56,17 @@ function trackLabel(row: RecentRecord): string {
             <td class="px-home-recent-map-cell">
               <div class="flex min-h-14 w-full items-stretch gap-2 pr-3 pl-0">
                 <span
-                  class="h-14 w-20 shrink-0 animate-pulse bg-neutral-200"
+                  class="px-home-recent-map-thumb-skeleton h-14 w-20 shrink-0 animate-pulse bg-neutral-200"
                   aria-hidden="true"
                 />
-                <div class="flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-2">
-                  <div class="flex min-w-0 flex-nowrap items-center gap-2">
-                    <SkeletonBar class="h-4 min-w-0 flex-1 shrink" />
+                <div class="flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-2 pr-3">
+                  <SkeletonBar class="h-4 min-w-0 w-full max-w-full shrink" />
+                  <div class="px-home-recent-map-track" aria-hidden="true">
                     <span
-                      class="box-border inline-block h-[1.125rem] w-8 shrink-0 animate-pulse border-2 border-px-ink bg-neutral-200"
-                      aria-hidden="true"
+                      class="box-border inline-block h-[1.125rem] w-7 shrink-0 animate-pulse border-2 border-px-ink bg-neutral-200"
                     />
+                    <SkeletonBar class="h-3 w-8 shrink-0" />
                   </div>
-                  <SkeletonBar class="h-3 w-12 shrink-0" />
                 </div>
               </div>
             </td>
@@ -95,20 +95,22 @@ function trackLabel(row: RecentRecord): string {
                   variant="thumb"
                 />
                 <span class="px-home-recent-map-text">
-                  <span class="px-home-recent-map-title">
-                    <span class="px-home-recent-map-name">{{ rows[index]!.map }}</span>
-                    <span
-                      v-if="rows[index]!.tier != null"
-                      :class="[
-                        'px-chip shrink-0 bg-px-surface',
-                        tierChipColorClass(rows[index]!.tier!),
-                      ]"
-                    >
-                      T{{ rows[index]!.tier }}
+                  <span class="px-home-recent-map-name">{{ rows[index]!.map }}</span>
+                  <span class="px-home-recent-map-track">
+                    <span class="px-home-recent-map-track-tier">
+                      <span
+                        v-if="rows[index]!.tier != null"
+                        :class="[
+                          'px-chip shrink-0 bg-px-surface text-[10px] leading-none',
+                          tierChipColorClass(rows[index]!.tier!),
+                        ]"
+                      >
+                        T{{ rows[index]!.tier }}
+                      </span>
                     </span>
-                  </span>
-                  <span class="block text-xs leading-tight text-px-muted">
-                    {{ trackLabel(rows[index]!) }}
+                    <span class="px-home-recent-map-track-kind">{{
+                      trackLabel(rows[index]!)
+                    }}</span>
                   </span>
                 </span>
               </RouterLink>

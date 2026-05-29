@@ -1,19 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using SurfWeb.Services.IServices;
-using SurfWeb.Data.Caching;
+using SurfWeb.Core.Options;
+using SurfWeb.Core.Dtos;
+using SurfWeb.Core.Enums;
+using SurfWeb.Core.Models;
+using SurfWeb.Core.Constants;
 using SurfWeb.Utils.Caching;
-using SurfWeb.Utils.Common;
-using SurfWeb.Utils.Constants;
-using SurfWeb.Data.Dtos;
-using SurfWeb.Configurations;
 using SurfWeb.Repositories;
-using SurfWeb.Repositories.Entities;
+using SurfWeb.Services.IServices;
+using SurfWeb.Utils.Common;
 
 namespace SurfWeb.Services;
 
 public sealed class RecordService(
     IBaseRepository<PlayerTime> playerTimes,
+    IBaseRepository<StageTime> stageTimes,
     IBaseRepository<User> users,
     IBaseRepository<MapTier> mapTiers,
     IQueryCache cache,
@@ -22,11 +23,14 @@ public sealed class RecordService(
     private const float WrGapEpsilon = 0.001f;
 
     public async Task<(IReadOnlyList<RecentRecordDto> Items, int Total)> GetRecentAsync(
-        int page, int pageSize, string? filter = null, CancellationToken ct = default)
+        int page,
+        int pageSize,
+        RecentRecordFilter filter = RecentRecordFilter.All,
+        WrRankingScope wrScope = WrRankingScope.Main,
+        CancellationToken ct = default)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 50);
-        filter = NormalizeFilter(filter);
 
         if ((page - 1) * pageSize >= SiteLimits.MaxRecentTotal)
             return ([], SiteLimits.MaxRecentTotal);
@@ -38,7 +42,7 @@ public sealed class RecordService(
             LoadRecentSnapshotAsync,
             ct);
 
-        var list = SelectList(snapshot, filter);
+        var list = SelectList(snapshot, filter, wrScope);
         var total = list.Count;
         if (total == 0)
             return ([], 0);
@@ -54,21 +58,22 @@ public sealed class RecordService(
         return (items, total);
     }
 
-    private static IReadOnlyList<RecentRecordDto> SelectList(RecentRecordsSnapshot snapshot, string? filter) =>
+    private static IReadOnlyList<RecentRecordDto> SelectList(
+        RecentRecordsSnapshot snapshot,
+        RecentRecordFilter filter,
+        WrRankingScope wrScope) =>
         filter switch
         {
-            "main" => snapshot.Main,
-            "bonus" => snapshot.Bonus,
-            "wr" => snapshot.Wr,
+            RecentRecordFilter.Main => snapshot.Main,
+            RecentRecordFilter.Stage => snapshot.Stage,
+            RecentRecordFilter.Bonus => snapshot.Bonus,
+            RecentRecordFilter.Wr => wrScope switch
+            {
+                WrRankingScope.Bonus => snapshot.WrBonus,
+                WrRankingScope.Stage => snapshot.WrStage,
+                _ => snapshot.WrMain,
+            },
             _ => snapshot.All,
-        };
-
-    private static string? NormalizeFilter(string? filter) =>
-        filter?.Trim().ToLowerInvariant() switch
-        {
-            "" or "all" => null,
-            "main" or "bonus" or "wr" => filter.Trim().ToLowerInvariant(),
-            _ => null,
         };
 
     private static bool IsWr(RecentRecordDto record) =>
@@ -82,39 +87,64 @@ public sealed class RecordService(
             .Take(SiteLimits.RecentScanBatch)
             .ToListAsync(ct);
 
-        if (recentRuns.Count == 0)
-            return new RecentRecordsSnapshot([], [], [], []);
+        var recentStageRuns = await stageTimes
+            .Where(st => st.Date != null)
+            .OrderByDescending(st => st.Date)
+            .Take(SiteLimits.RecentScanBatch)
+            .ToListAsync(ct);
 
-        var allRuns = PickTopPlayerPbByDate(recentRuns);
-        var mainRuns = PickTopPlayerPbByDate(recentRuns.Where(pt => pt.Track == 0));
-        var bonusRuns = PickTopPlayerPbByDate(recentRuns.Where(pt => pt.Track > 0));
+        if (recentRuns.Count == 0 && recentStageRuns.Count == 0)
+            return new RecentRecordsSnapshot([], [], [], [], [], [], []);
 
-        var maps = recentRuns.Select(pt => pt.Map).Distinct().ToList();
+        var maps = recentRuns.Select(pt => pt.Map)
+            .Concat(recentStageRuns.Select(st => st.Map))
+            .Distinct()
+            .ToList();
+
         var minRunTimes = await GetMinRunTimesByMapTrackAsync(maps, ct);
         var wrByRun = minRunTimes
             .GroupBy(x => (x.Map, x.Track))
             .ToDictionary(g => g.Key, g => g.Min(x => x.MinTime));
 
-        var authIds = recentRuns.Select(pt => pt.Auth!.Value).Distinct().ToList();
+        var minStageTimes = await GetMinStageTimesByMapTrackStageAsync(maps, ct);
+        var wrByStage = minStageTimes
+            .GroupBy(x => (x.Map, x.Track, x.Stage))
+            .ToDictionary(g => g.Key, g => g.Min(x => x.MinTime));
+
+        var authIds = recentRuns
+            .Where(pt => pt.Auth != null)
+            .Select(pt => pt.Auth!.Value)
+            .Concat(recentStageRuns.Select(st => st.Auth))
+            .Distinct()
+            .ToList();
         var names = await GetNamesByAuthIdsAsync(authIds, ct);
         var tiers = await GetTiersByMapsAsync(maps, ct);
+
+        var allRuns = PickTopPlayerPbByDate(recentRuns);
+        var mainRuns = PickTopPlayerPbByDate(recentRuns.Where(pt => pt.Track == 0));
+        var bonusRuns = PickTopPlayerPbByDate(recentRuns.Where(pt => pt.Track > 0));
+        var stageRuns = PickTopStagePbByDate(recentStageRuns);
 
         var all = BuildDtos(allRuns, names, wrByRun, tiers);
         var main = BuildDtos(mainRuns, names, wrByRun, tiers);
         var bonus = BuildDtos(bonusRuns, names, wrByRun, tiers);
-        var wr = BuildDtos(DedupeFastestPerPlayerMapTrack(recentRuns), names, wrByRun, tiers)
+        var stage = BuildStageDtos(stageRuns, names, wrByStage, tiers);
+
+        var wrCandidates = BuildDtos(DedupeFastestPerPlayerMapTrack(recentRuns), names, wrByRun, tiers)
+            .Concat(BuildStageDtos(DedupeFastestPerStage(recentStageRuns), names, wrByStage, tiers))
             .Where(IsWr)
             .OrderByDescending(d => d.Date)
             .ThenByDescending(d => d.Id)
             .Take(SiteLimits.MaxRecentTotal)
             .ToList();
 
-        return new RecentRecordsSnapshot(all, main, bonus, wr);
+        var wrMain = wrCandidates.Where(d => d.Stage is null && d.Track == 0).ToList();
+        var wrBonus = wrCandidates.Where(d => d.Stage is null && d.Track > 0).ToList();
+        var wrStage = wrCandidates.Where(d => d.Stage is not null).ToList();
+
+        return new RecentRecordsSnapshot(all, main, stage, bonus, wrMain, wrBonus, wrStage);
     }
 
-    /// <summary>
-    /// 在最近批次内：同一玩家 + 地图 + 赛道只保留该玩家最快一条，再按该条的完成时间降序取 Top 100。
-    /// </summary>
     private static List<PlayerTime> PickTopPlayerPbByDate(IEnumerable<PlayerTime> runs) =>
         DedupeFastestPerPlayerMapTrack(runs)
             .OrderByDescending(pt => pt.Date)
@@ -122,8 +152,16 @@ public sealed class RecordService(
             .Take(SiteLimits.MaxRecentTotal)
             .ToList();
 
+    private static List<StageTime> PickTopStagePbByDate(IEnumerable<StageTime> runs) =>
+        DedupeFastestPerStage(runs)
+            .OrderByDescending(st => st.Date)
+            .ThenBy(st => st.Id)
+            .Take(SiteLimits.MaxRecentTotal)
+            .ToList();
+
     private static List<PlayerTime> DedupeFastestPerPlayerMapTrack(IEnumerable<PlayerTime> runs) =>
         runs
+            .Where(pt => pt.Auth != null)
             .GroupBy(pt => (Auth: pt.Auth!.Value, pt.Map, pt.Track))
             .Select(g => g
                 .OrderBy(pt => pt.Time)
@@ -132,14 +170,29 @@ public sealed class RecordService(
                 .First())
             .ToList();
 
+    private static List<StageTime> DedupeFastestPerStage(IEnumerable<StageTime> runs) =>
+        runs
+            .GroupBy(st => (st.Auth, st.Map, st.Track, st.Stage))
+            .Select(g => g
+                .OrderBy(st => st.Time)
+                .ThenByDescending(st => st.Date)
+                .ThenBy(st => st.Id)
+                .First())
+            .ToList();
+
     private static List<RecentRecordDto> BuildDtos(
         IReadOnlyList<PlayerTime> runs,
         Dictionary<int, string?> names,
         Dictionary<(string Map, byte Track), float> wrByRun,
         Dictionary<string, int> tiers) =>
-        runs
-            .Select(pt => ToRecentRecordDto(pt, names, wrByRun, tiers))
-            .ToList();
+        runs.Select(pt => ToRecentRecordDto(pt, names, wrByRun, tiers)).ToList();
+
+    private static List<RecentRecordDto> BuildStageDtos(
+        IReadOnlyList<StageTime> runs,
+        Dictionary<int, string?> names,
+        Dictionary<(string Map, byte Track, byte Stage), float> wrByStage,
+        Dictionary<string, int> tiers) =>
+        runs.Select(st => ToRecentRecordDto(st, names, wrByStage, tiers)).ToList();
 
     private async Task<IReadOnlyList<(string Map, byte Track, float MinTime)>> GetMinRunTimesByMapTrackAsync(
         IReadOnlyList<string> maps, CancellationToken ct)
@@ -151,6 +204,18 @@ public sealed class RecordService(
             .Select(g => new { g.Key.Map, g.Key.Track, MinTime = g.Min(pt => pt.Time) })
             .ToListAsync(ct);
         return rows.Select(x => (x.Map, x.Track, x.MinTime)).ToList();
+    }
+
+    private async Task<IReadOnlyList<(string Map, byte Track, byte Stage, float MinTime)>> GetMinStageTimesByMapTrackStageAsync(
+        IReadOnlyList<string> maps, CancellationToken ct)
+    {
+        if (maps.Count == 0) return [];
+        var rows = await stageTimes
+            .Where(st => maps.Contains(st.Map))
+            .GroupBy(st => new { st.Map, st.Track, st.Stage, st.Auth })
+            .Select(g => new { g.Key.Map, g.Key.Track, g.Key.Stage, MinTime = g.Min(st => st.Time) })
+            .ToListAsync(ct);
+        return rows.Select(x => (x.Map, x.Track, x.Stage, x.MinTime)).ToList();
     }
 
     private async Task<Dictionary<int, string?>> GetNamesByAuthIdsAsync(
@@ -199,5 +264,34 @@ public sealed class RecordService(
             gap,
             Tier: tier);
     }
-}
 
+    private static RecentRecordDto ToRecentRecordDto(
+        StageTime st,
+        Dictionary<int, string?> names,
+        Dictionary<(string Map, byte Track, byte Stage), float> wrByStage,
+        Dictionary<string, int> tiers)
+    {
+        names.TryGetValue(st.Auth, out var name);
+        var key = (st.Map, st.Track, st.Stage);
+        float? wrTime = wrByStage.TryGetValue(key, out var wr) ? wr : null;
+        float? gap = wrTime is not null ? st.Time - wrTime.Value : null;
+        if (gap is <= WrGapEpsilon) gap = null;
+
+        int? tier = tiers.TryGetValue(st.Map, out var t) ? t : null;
+
+        return new RecentRecordDto(
+            st.Id,
+            st.Auth,
+            name,
+            st.Map,
+            st.Style,
+            st.Track,
+            st.Time,
+            TimeFormatter.Format(st.Time),
+            TimeFormatter.FromUnixSeconds(st.Date),
+            wrTime,
+            gap,
+            st.Stage,
+            tier);
+    }
+}

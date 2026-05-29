@@ -16,10 +16,15 @@ const props = defineProps<{
   pageSize: number
 }>()
 
+/** 时长文案含「X天 X小时」，需宽于积分/完赛/WR 列 */
+const valueColClass = computed(() =>
+  props.rankingType === 'playtime' ? 'w-44' : 'w-28',
+)
+
 const valueColumnLabel = computed(() => {
   switch (props.rankingType) {
     case 'completions':
-      return '完赛'
+      return '完成'
     case 'playtime':
       return '时长'
     case 'wr':
@@ -51,7 +56,7 @@ function displayRank(index: number): number {
       <colgroup>
         <col class="w-12" />
         <col />
-        <col class="w-28" />
+        <col :class="valueColClass" />
       </colgroup>
       <thead class="px-table-head">
         <tr>
@@ -100,11 +105,7 @@ function displayRank(index: number): number {
                 {{ rows[index]!.name ?? rows[index]!.auth }}
               </RouterLink>
             </td>
-            <td
-              class="px-home-list-cell text-right font-mono font-bold"
-              :class="rankingType === 'playtime' && 'px-home-list-cell-truncate'"
-              :title="rankingType === 'playtime' ? formatValue(rows[index]!.value) : undefined"
-            >
+            <td class="px-home-list-cell text-right font-mono font-bold tabular-nums">
               {{ formatValue(rows[index]!.value) }}
             </td>
           </template>

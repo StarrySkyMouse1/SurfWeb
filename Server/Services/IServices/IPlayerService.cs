@@ -1,4 +1,4 @@
-using SurfWeb.Data.Dtos;
+using SurfWeb.Core.Dtos;
 
 namespace SurfWeb.Services.IServices;
 

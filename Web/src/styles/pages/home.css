@@ -17,20 +17,58 @@
     @apply flex h-14 max-h-14 w-full items-stretch gap-2 overflow-hidden pr-3 pl-0 hover:opacity-90;
   }
 
+  /** 最新记录缩略图：左实右透明（mask 透明度渐变，非压暗） */
   .px-home-recent-map-link .px-map-thumb {
     @apply h-14 w-20 shrink-0;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 28%,
+      rgb(0 0 0 / 0.55) 62%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 28%,
+      rgb(0 0 0 / 0.55) 62%,
+      transparent 100%
+    );
   }
 
   .px-home-recent-map-text {
     @apply flex min-w-0 flex-1 flex-col justify-center overflow-hidden py-2;
   }
 
-  .px-home-recent-map-title {
-    @apply flex min-w-0 flex-nowrap items-center gap-2 leading-tight;
+  .px-home-recent-map-name {
+    @apply block min-w-0 truncate font-bold leading-tight;
   }
 
-  .px-home-recent-map-name {
-    @apply min-w-0 flex-1 truncate font-bold;
+  /** 最新记录：左 Tier 彩色芯片，右赛道类型小字（与芯片垂直居中） */
+  .px-home-recent-map-track {
+    @apply mt-0.5 grid w-[5rem] shrink-0 items-center leading-none;
+    grid-template-columns: 1.625rem 2.5rem;
+    column-gap: 0.5rem;
+  }
+
+  .px-home-recent-map-track-tier {
+    @apply flex items-center;
+  }
+
+  .px-home-recent-map-track-kind {
+    @apply pl-1.5 text-xs leading-none text-px-muted;
+  }
+
+  /** 窄屏：最新记录不展示地图缩略图，为玩家/时间列留出宽度 */
+  @media (max-width: 640px) {
+    .px-home-recent-map-link .px-map-thumb,
+    .px-home-recent-map-thumb-skeleton {
+      @apply hidden;
+    }
+
+    .px-home-recent-map-link {
+      @apply gap-0 pl-3;
+    }
   }
 
   /** 表头 + 10 行高度上限；超出裁剪，不显示滚动条、不撑开页面 */

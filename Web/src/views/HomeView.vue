@@ -4,9 +4,15 @@ import PaginationBar from '../components/PaginationBar.vue'
 import { apiGet, type RankingEntry, type RecentRecord } from '../api/client'
 import HomeRankingTable from './home/components/HomeRankingTable.vue'
 import HomeRecentTable from './home/components/HomeRecentTable.vue'
-import RankingFilter, { type RankingFilterValue } from './home/components/RankingFilter.vue'
+import RankingFilter, {
+  type CompletionRankingScope,
+  type RankingFilterValue,
+  type WrRankingScope,
+} from './home/components/RankingFilter.vue'
 import RecentRecordFilter, {
-  type RecentRecordFilterValue,
+  type RecentBrowseFilter,
+  type RecentFilterMode,
+  type RecentWrScope,
 } from './home/components/RecentRecordFilter.vue'
 import { useMapImageConfig } from '../composables/useMapImageConfig'
 import { skeletonRowsForPage } from '../utils/display'
@@ -16,7 +22,9 @@ const { config: mapImageConfig } = useMapImageConfig()
 const pageSize = 10
 const maxListTotal = 100
 
-const recentFilter = ref<RecentRecordFilterValue>('')
+const recentMode = ref<RecentFilterMode>('browse')
+const recentBrowseScope = ref<RecentBrowseFilter>('')
+const recentWrScope = ref<RecentWrScope>('main')
 const recent = ref<RecentRecord[]>([])
 const recentTotal = ref(0)
 const recentPage = ref(1)
@@ -25,6 +33,8 @@ const recentLoading = ref(true)
 let recentLoadId = 0
 
 const rankingsType = ref<RankingFilterValue>('points')
+const rankingsWrScope = ref<WrRankingScope>('main')
+const rankingsCompletionScope = ref<CompletionRankingScope>('main')
 const rankings = ref<RankingEntry[]>([])
 const rankingsTotal = ref(0)
 const rankingsPage = ref(1)
@@ -67,6 +77,10 @@ async function loadRankings() {
       type: rankingsType.value,
       page,
       pageSize,
+      ...(rankingsType.value === 'wr' ? { wrScope: rankingsWrScope.value } : {}),
+      ...(rankingsType.value === 'completions'
+        ? { completionScope: rankingsCompletionScope.value }
+        : {}),
     })
     if (id !== rankingsLoadId) return
 
@@ -98,7 +112,11 @@ async function loadRecent() {
     const res = await apiGet<RecentRecord[]>('/records/recent', {
       page,
       pageSize,
-      ...(recentFilter.value ? { filter: recentFilter.value } : {}),
+      ...(recentMode.value === 'wr'
+        ? { filter: 'wr', wrScope: recentWrScope.value }
+        : recentBrowseScope.value
+          ? { filter: recentBrowseScope.value }
+          : {}),
     })
     if (id !== recentLoadId) return
 
@@ -122,14 +140,15 @@ async function loadRecent() {
 }
 
 watch(rankingsPage, loadRankings)
-watch(rankingsType, () => {
+watch([rankingsType, rankingsWrScope, rankingsCompletionScope], () => {
   rankingsPage.value = 1
   rankingsTotalKnown.value = false
   loadRankings()
 })
 watch(recentPage, loadRecent)
-watch(recentFilter, () => {
+watch([recentMode, recentBrowseScope, recentWrScope], () => {
   recentPage.value = 1
+  recentTotalKnown.value = false
   loadRecent()
 })
 
@@ -146,7 +165,12 @@ loadRecent()
             <h2 class="px-home-column-title">排行</h2>
             <span class="px-en-subtitle">RANKING</span>
           </div>
-          <RankingFilter v-model="rankingsType" class="shrink-0" />
+          <RankingFilter
+            v-model="rankingsType"
+            v-model:completion-scope="rankingsCompletionScope"
+            v-model:wr-scope="rankingsWrScope"
+            class="shrink-0"
+          />
         </div>
         <p v-if="rankingsError" class="px-error-box">{{ rankingsError }}</p>
         <div v-else class="px-home-list-panel">
@@ -174,7 +198,12 @@ loadRecent()
             <h2 class="px-home-column-title">最新记录</h2>
             <span class="px-en-subtitle">RECENT</span>
           </div>
-          <RecentRecordFilter v-model="recentFilter" class="shrink-0" />
+          <RecentRecordFilter
+            v-model:mode="recentMode"
+            v-model:browse-scope="recentBrowseScope"
+            v-model:wr-scope="recentWrScope"
+            class="shrink-0"
+          />
         </div>
         <p v-if="recentError" class="px-error-box">{{ recentError }}</p>
         <div v-else class="px-home-list-panel">

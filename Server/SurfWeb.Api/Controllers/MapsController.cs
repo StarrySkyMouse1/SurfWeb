@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SurfWeb.Configurations.Common;
+using SurfWeb.Core.Dtos;
 using SurfWeb.Services.IServices;
 
 namespace SurfWeb.Api.Controllers;
@@ -18,7 +19,7 @@ public sealed class MapsController(IMapService maps) : ControllerBase
     /// <param name="ct">取消令牌。</param>
     /// <returns>地图列表与分页 meta。</returns>
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<object>>>> List(
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MapListItemDto>>>> List(
         [FromQuery] int? tier,
         [FromQuery] string? search,
         [FromQuery] int page = 1,
@@ -26,8 +27,7 @@ public sealed class MapsController(IMapService maps) : ControllerBase
         CancellationToken ct = default)
     {
         var (items, total) = await maps.GetMapsAsync(tier, search, page, pageSize, ct);
-        return Ok(ApiResponse<IReadOnlyList<object>>.Ok(items.Cast<object>().ToList(),
-            new ApiMeta(page, pageSize, total)));
+        return Ok(ApiResponse<IReadOnlyList<MapListItemDto>>.Ok(items, new ApiMeta(page, pageSize, total)));
     }
 
     /// <summary>
@@ -37,13 +37,14 @@ public sealed class MapsController(IMapService maps) : ControllerBase
     /// <param name="ct">取消令牌。</param>
     /// <returns>地图详情。</returns>
     [HttpGet("{mapName}")]
-    public async Task<ActionResult<ApiResponse<object>>> Detail(
+    public async Task<ActionResult<ApiResponse<MapDetailDto>>> Detail(
         string mapName,
         CancellationToken ct = default)
     {
         var map = await maps.GetMapAsync(mapName, ct);
-        if (map is null) return NotFound(ApiResponse<object>.Fail("not_found", $"Map '{mapName}' not found."));
-        return Ok(ApiResponse<object>.Ok(map));
+        if (map is null)
+            return NotFound(ApiResponse<MapDetailDto>.Fail(ApiErrorCode.NotFound, $"未找到地图「{mapName}」。"));
+        return Ok(ApiResponse<MapDetailDto>.Ok(map));
     }
 
     /// <summary>
@@ -57,7 +58,7 @@ public sealed class MapsController(IMapService maps) : ControllerBase
     /// <param name="ct">取消令牌。</param>
     /// <returns>排行榜条目与分页 meta。</returns>
     [HttpGet("{mapName}/leaderboard")]
-    public async Task<ActionResult<ApiResponse<object>>> Leaderboard(
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<LeaderboardEntryDto>>>> Leaderboard(
         string mapName,
         [FromQuery] byte track = 0,
         [FromQuery] byte? stage = null,
@@ -66,6 +67,6 @@ public sealed class MapsController(IMapService maps) : ControllerBase
         CancellationToken ct = default)
     {
         var (items, total) = await maps.GetLeaderboardAsync(mapName, track, stage, page, pageSize, ct);
-        return Ok(ApiResponse<object>.Ok(items.Cast<object>().ToList(), new ApiMeta(page, pageSize, total)));
+        return Ok(ApiResponse<IReadOnlyList<LeaderboardEntryDto>>.Ok(items, new ApiMeta(page, pageSize, total)));
     }
 }

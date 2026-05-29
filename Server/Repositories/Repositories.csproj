@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Configurations\Configurations.csproj" />
+    <ProjectReference Include="..\SurfWeb.Core\SurfWeb.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

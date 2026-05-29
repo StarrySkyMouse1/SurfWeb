@@ -1,3 +1,4 @@
+using SurfWeb.Core.Options;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -5,7 +6,7 @@ using Microsoft.Extensions.Options;
 namespace SurfWeb.Configurations.Middleware;
 
 /// <summary>
-/// 读 API 最小响应时间：耗时不足配置值则补齐等待，超过配置值则立即返回。
+/// �?API 最小响应时间：耗时不足配置值则补齐等待，超过配置值则立即返回�?
 /// </summary>
 public sealed class MinimumResponseDelayMiddleware(
     RequestDelegate next,

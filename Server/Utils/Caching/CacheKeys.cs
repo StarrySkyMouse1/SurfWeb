@@ -1,19 +1,43 @@
+using SurfWeb.Core.Enums;
+
 namespace SurfWeb.Utils.Caching;
 
 public static class CacheKeys
 {
     public const string RankingsPoints = "surfweb:rankings:points";
+
     public const string RankingsPlaytime = "surfweb:rankings:playtime";
-    public const string RankingsCompletions = "surfweb:rankings:completions";
-    public const string RankingsWr = "surfweb:rankings:wr";
+
+    public const string RankingsCompletionsMain = "surfweb:rankings:completions:main";
+
+    public const string RankingsCompletionsBonus = "surfweb:rankings:completions:bonus";
+
+    public const string RankingsWrMain = "surfweb:rankings:wr:main";
+
+    public const string RankingsWrBonus = "surfweb:rankings:wr:bonus";
+
+    public const string RankingsWrStage = "surfweb:rankings:wr:stage";
+
     public const string RecordsRecent = "surfweb:records:recent";
 
-    public static string Rankings(string type) =>
-        type.ToLowerInvariant() switch
+    public static string Rankings(
+        RankingType type,
+        WrRankingScope? wrScope = null,
+        TrackRankingScope? completionScope = null) =>
+        type switch
         {
-            "playtime" => RankingsPlaytime,
-            "completions" => RankingsCompletions,
-            "wr" => RankingsWr,
+            RankingType.Playtime => RankingsPlaytime,
+            RankingType.Completions => completionScope switch
+            {
+                TrackRankingScope.Bonus => RankingsCompletionsBonus,
+                _ => RankingsCompletionsMain,
+            },
+            RankingType.Wr => wrScope switch
+            {
+                WrRankingScope.Bonus => RankingsWrBonus,
+                WrRankingScope.Stage => RankingsWrStage,
+                _ => RankingsWrMain,
+            },
             _ => RankingsPoints,
         };
 

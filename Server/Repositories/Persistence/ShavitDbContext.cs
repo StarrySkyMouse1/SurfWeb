@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using SurfWeb.Configurations;
-using SurfWeb.Repositories.Entities;
+using SurfWeb.Core.Options;
+using SurfWeb.Core.Models;
 
 namespace SurfWeb.Repositories.Persistence;
 

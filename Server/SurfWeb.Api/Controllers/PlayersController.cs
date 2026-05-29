@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SurfWeb.Configurations.Common;
+using SurfWeb.Core.Dtos;
 using SurfWeb.Services.IServices;
 
 namespace SurfWeb.Api.Controllers;
@@ -15,11 +16,12 @@ public sealed class PlayersController(IPlayerService players) : ControllerBase
     /// <param name="ct">取消令牌。</param>
     /// <returns>玩家资料。</returns>
     [HttpGet("{auth:int}")]
-    public async Task<ActionResult<ApiResponse<object>>> Get(int auth, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<PlayerSummaryDto>>> Get(int auth, CancellationToken ct)
     {
         var player = await players.GetPlayerAsync(auth, ct);
-        if (player is null) return NotFound(ApiResponse<object>.Fail("not_found", $"Player {auth} not found."));
-        return Ok(ApiResponse<object>.Ok(player));
+        if (player is null)
+            return NotFound(ApiResponse<PlayerSummaryDto>.Fail(ApiErrorCode.NotFound, $"未找到玩家 {auth}。"));
+        return Ok(ApiResponse<PlayerSummaryDto>.Ok(player));
     }
 
     /// <summary>
@@ -32,7 +34,7 @@ public sealed class PlayersController(IPlayerService players) : ControllerBase
     /// <param name="ct">取消令牌。</param>
     /// <returns>成绩列表与分页 meta。</returns>
     [HttpGet("{auth:int}/times")]
-    public async Task<ActionResult<ApiResponse<object>>> Times(
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<PlayerTimeDto>>>> Times(
         int auth,
         [FromQuery] string? map,
         [FromQuery] int page = 1,
@@ -40,7 +42,7 @@ public sealed class PlayersController(IPlayerService players) : ControllerBase
         CancellationToken ct = default)
     {
         var (items, total) = await players.GetPlayerTimesAsync(auth, map, page, pageSize, ct);
-        return Ok(ApiResponse<object>.Ok(items.Cast<object>().ToList(), new ApiMeta(page, pageSize, total)));
+        return Ok(ApiResponse<IReadOnlyList<PlayerTimeDto>>.Ok(items, new ApiMeta(page, pageSize, total)));
     }
 
     /// <summary>
@@ -52,16 +54,17 @@ public sealed class PlayersController(IPlayerService players) : ControllerBase
     /// <param name="ct">取消令牌。</param>
     /// <returns>完成度列表与分页 meta。</returns>
     [HttpGet("{auth:int}/completions")]
-    public async Task<ActionResult<ApiResponse<object>>> Completions(
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<PlayerCompletionDto>>>> Completions(
         int auth,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
         var player = await players.GetPlayerAsync(auth, ct);
-        if (player is null) return NotFound(ApiResponse<object>.Fail("not_found", $"Player {auth} not found."));
+        if (player is null)
+            return NotFound(ApiResponse<IReadOnlyList<PlayerCompletionDto>>.Fail(ApiErrorCode.NotFound, $"未找到玩家 {auth}。"));
 
         var (items, total) = await players.GetPlayerCompletionsAsync(auth, page, pageSize, ct);
-        return Ok(ApiResponse<object>.Ok(items.Cast<object>().ToList(), new ApiMeta(page, pageSize, total)));
+        return Ok(ApiResponse<IReadOnlyList<PlayerCompletionDto>>.Ok(items, new ApiMeta(page, pageSize, total)));
     }
 }

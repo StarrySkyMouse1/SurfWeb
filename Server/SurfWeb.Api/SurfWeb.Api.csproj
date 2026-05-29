@@ -16,12 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Configurations\Configurations.csproj" />
-    <ProjectReference Include="..\Services\Services.csproj" />
+    <ProjectReference Include="..\Services\SurfWeb.Services.csproj" />
+    <ProjectReference Include="..\SurfWeb.ServerStatus\SurfWeb.ServerStatus.csproj" />
+    <ProjectReference Include="..\SurfWeb.Core\SurfWeb.Core.csproj" />
   </ItemGroup>
 
 </Project>

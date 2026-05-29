@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using SurfWeb.Services.IServices;
 using SurfWeb.Utils.Common;
-using SurfWeb.Data.Dtos;
+using SurfWeb.Core.Dtos;
 using SurfWeb.Repositories;
-using SurfWeb.Repositories.Entities;
+using SurfWeb.Core.Models;
 
 namespace SurfWeb.Services;
 

@@ -16,9 +16,11 @@
       </Folder>
     </Folder>
   </Folder>
+  <Project Path="SurfWeb.Core/SurfWeb.Core.csproj" />
   <Project Path="Configurations/Configurations.csproj" />
   <Project Path="Utils/Utils.csproj" />
   <Project Path="Repositories/Repositories.csproj" />
-  <Project Path="Services/Services.csproj" />
+  <Project Path="Services/SurfWeb.Services.csproj" />
+  <Project Path="SurfWeb.ServerStatus/SurfWeb.ServerStatus.csproj" />
   <Project Path="SurfWeb.Api/SurfWeb.Api.csproj" />
 </Solution>
