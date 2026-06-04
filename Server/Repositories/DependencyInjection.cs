@@ -18,14 +18,6 @@ public static class DependencyInjection
             services.AddDbContext<ShavitDbContext>(options =>
                 options.UseMySql(connectionString, serverVersion));
         }
-        else
-        {
-            services.AddDbContext<ShavitDbContext>(options =>
-                options.UseMySql(
-                    "Server=localhost;Database=shavit;User=readonly;Password=;",
-                    new MySqlServerVersion(new Version(8, 0, 0))));
-        }
-
         services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
 
         return services;

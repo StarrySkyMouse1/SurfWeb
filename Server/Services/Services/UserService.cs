@@ -25,6 +25,9 @@ public sealed class UserService(IBaseRepository<User> users) : IUserService
 
         return matched
             .Where(u => u.Name is not null)
-            .ToDictionary(u => u.Name!, u => u.Auth);
+            .GroupBy(u => u.Name!)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(u => u.Auth).First().Auth);
     }
 }

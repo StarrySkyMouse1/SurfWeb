@@ -4,8 +4,10 @@
 @import "./styles/base.css";
 @import "./styles/components/pixel-ui.css";
 @import "./styles/components/table.css";
+@import "./styles/components/chart.css";
 @import "./styles/components/pagination.css";
 @import "./styles/pages/home.css";
 @import "./styles/pages/server.css";
 @import "./styles/pages/player.css";
+@import "./styles/pages/map-detail.css";
 @import "./styles/tier.css";

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SurfWeb.Configurations.Common;
 using SurfWeb.Core.Dtos;
+using SurfWeb.Core.Enums;
 using SurfWeb.Services.IServices;
 
 namespace SurfWeb.Api.Controllers;
@@ -10,11 +11,8 @@ namespace SurfWeb.Api.Controllers;
 public sealed class PlayersController(IPlayerService players) : ControllerBase
 {
     /// <summary>
-    /// 按 Steam auth 获取玩家资料。
+    /// 按 Steam auth 获取玩家冲浪档案摘要（积分 / 时长 / 完成 / WR 及排名）。
     /// </summary>
-    /// <param name="auth">玩家 auth（Steam ID 数值）。</param>
-    /// <param name="ct">取消令牌。</param>
-    /// <returns>玩家资料。</returns>
     [HttpGet("{auth:int}")]
     public async Task<ActionResult<ApiResponse<PlayerSummaryDto>>> Get(int auth, CancellationToken ct)
     {
@@ -25,46 +23,26 @@ public sealed class PlayersController(IPlayerService players) : ControllerBase
     }
 
     /// <summary>
-    /// 获取玩家成绩列表。
+    /// 玩家记录列表与图表（近期 / WR / 未完成 × 主线 / 阶段 / 奖励）。
     /// </summary>
-    /// <param name="auth">玩家 auth。</param>
-    /// <param name="map">可选地图名筛选。</param>
-    /// <param name="page">页码。</param>
-    /// <param name="pageSize">每页条数。</param>
-    /// <param name="ct">取消令牌。</param>
-    /// <returns>成绩列表与分页 meta。</returns>
-    [HttpGet("{auth:int}/times")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<PlayerTimeDto>>>> Times(
+    [HttpGet("{auth:int}/records")]
+    public async Task<ActionResult<ApiResponse<PlayerRecordsPageDto>>> Records(
         int auth,
-        [FromQuery] string? map,
+        [FromQuery] PlayerRecordCategory category = PlayerRecordCategory.Recent,
+        [FromQuery] PlayerRecordScope scope = PlayerRecordScope.Main,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] int? tier = null,
         CancellationToken ct = default)
     {
-        var (items, total) = await players.GetPlayerTimesAsync(auth, map, page, pageSize, ct);
-        return Ok(ApiResponse<IReadOnlyList<PlayerTimeDto>>.Ok(items, new ApiMeta(page, pageSize, total)));
-    }
+        if (tier is < 0 or > 8)
+            return BadRequest(ApiResponse<PlayerRecordsPageDto>.Fail(ApiErrorCode.BadRequest, "tier 须为 0–8。"));
 
-    /// <summary>
-    /// 获取玩家完成度排行。
-    /// </summary>
-    /// <param name="auth">玩家 auth。</param>
-    /// <param name="page">页码。</param>
-    /// <param name="pageSize">每页条数。</param>
-    /// <param name="ct">取消令牌。</param>
-    /// <returns>完成度列表与分页 meta。</returns>
-    [HttpGet("{auth:int}/completions")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<PlayerCompletionDto>>>> Completions(
-        int auth,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
-        CancellationToken ct = default)
-    {
-        var player = await players.GetPlayerAsync(auth, ct);
-        if (player is null)
-            return NotFound(ApiResponse<IReadOnlyList<PlayerCompletionDto>>.Fail(ApiErrorCode.NotFound, $"未找到玩家 {auth}。"));
+        var result = await players.GetPlayerRecordsAsync(auth, category, scope, page, pageSize, tier, ct);
+        if (result is null)
+            return NotFound(ApiResponse<PlayerRecordsPageDto>.Fail(ApiErrorCode.NotFound, $"未找到玩家 {auth}。"));
 
-        var (items, total) = await players.GetPlayerCompletionsAsync(auth, page, pageSize, ct);
-        return Ok(ApiResponse<IReadOnlyList<PlayerCompletionDto>>.Ok(items, new ApiMeta(page, pageSize, total)));
+        var (pageDto, total) = result.Value;
+        return Ok(ApiResponse<PlayerRecordsPageDto>.Ok(pageDto, new ApiMeta(page, pageSize, total)));
     }
 }

@@ -36,15 +36,16 @@ export function formatPlaytime(totalSeconds: number): string {
 
 /** 该条成绩是否为当前地图/赛道 WR */
 export function isRecordWr(record: {
-  time: number
+  time?: number
   worldRecordTime?: number
   gapFromWr?: number
 }): boolean {
   if (record.gapFromWr != null) return record.gapFromWr <= WR_GAP_EPSILON
 
   const wr = record.worldRecordTime
-  if (wr == null) return false
-  return Math.abs(record.time - wr) <= WR_GAP_EPSILON
+  const time = record.time
+  if (wr == null || time == null) return false
+  return Math.abs(time - wr) <= WR_GAP_EPSILON
 }
 
 /** 是否展示与 WR 的时间差（排除 WR 及 +0.000 级噪声） */

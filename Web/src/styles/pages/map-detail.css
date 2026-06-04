@@ -1,0 +1,77 @@
+@layer components {
+  .px-map-main-row {
+    @apply flex flex-col gap-6;
+  }
+
+  @media (min-width: 1024px) {
+    .px-map-main-row {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+
+    .px-map-main-chart-col {
+      width: 38.196%;
+      flex: 0 0 38.196%;
+      min-width: 0;
+    }
+
+    .px-map-main-table-col {
+      width: 61.804%;
+      flex: 1 1 61.804%;
+      min-width: 0;
+    }
+  }
+
+  .px-map-cp-chart-area {
+    @apply relative h-64 min-h-64 w-full shrink-0 pr-1.5;
+  }
+
+  @media (min-width: 1024px) {
+    .px-map-cp-chart-area {
+      @apply h-80 min-h-80;
+    }
+  }
+
+  .px-map-cp-chart-body {
+    @apply flex flex-col;
+  }
+
+  .px-map-cp-legend {
+    @apply mt-0 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 border-t border-px-ink/10 pt-1.5 text-xs;
+  }
+
+  .px-map-cp-legend-item {
+    @apply inline-flex max-w-full items-center gap-0.5 whitespace-nowrap;
+  }
+
+  .px-map-cp-legend-swatch {
+    @apply h-0.5 w-2.5 shrink-0 bg-[var(--legend-color)];
+  }
+
+  .px-map-cp-legend-item--no-cp {
+    @apply opacity-50;
+  }
+
+  .px-map-cp-legend-item--no-cp .px-map-cp-legend-swatch {
+    background: rgba(18, 18, 18, 0.2);
+  }
+
+  .px-map-record-grid {
+    @apply grid gap-6;
+  }
+
+  @media (min-width: 1280px) {
+    .px-map-record-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .px-map-record-col {
+    @apply flex min-w-0 flex-col gap-1.5;
+  }
+
+  /** 无筛选按钮时也占位，保证阶段/奖励两列表头顶对齐 */
+  .px-map-record-toolbar {
+    @apply flex min-h-[1.625rem] flex-wrap content-start items-start gap-1.5;
+  }
+}

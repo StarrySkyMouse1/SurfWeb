@@ -69,4 +69,20 @@ public sealed class MapsController(IMapService maps) : ControllerBase
         var (items, total) = await maps.GetLeaderboardAsync(mapName, track, stage, page, pageSize, ct);
         return Ok(ApiResponse<IReadOnlyList<LeaderboardEntryDto>>.Ok(items, new ApiMeta(page, pageSize, total)));
     }
+
+    /// <summary>
+    /// 获取地图检查点差异折线图数据（默认主线 TOP10）。
+    /// </summary>
+    [HttpGet("{mapName}/checkpoints")]
+    public async Task<ActionResult<ApiResponse<MapCheckpointChartDto>>> Checkpoints(
+        string mapName,
+        [FromQuery] byte track = 0,
+        [FromQuery] int limit = 10,
+        CancellationToken ct = default)
+    {
+        var chart = await maps.GetCheckpointChartAsync(mapName, track, limit, ct);
+        if (chart is null)
+            return NotFound(ApiResponse<MapCheckpointChartDto>.Fail(ApiErrorCode.NotFound, $"未找到地图「{mapName}」。"));
+        return Ok(ApiResponse<MapCheckpointChartDto>.Ok(chart));
+    }
 }

@@ -1,0 +1,63 @@
+@layer components {
+  .px-chart-panel {
+    @apply flex flex-col border-2 border-px-ink bg-px-paper;
+    box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-chart-panel-head {
+    @apply flex min-h-9 shrink-0 items-center justify-between gap-2 border-b border-px-ink/15 bg-px-ink px-3 py-2 text-px-paper;
+  }
+
+  .px-chart-panel-body {
+    @apply flex flex-col gap-3 p-3 pb-4;
+    --px-chart-plot-h: 5.25rem;
+    --px-chart-block-min-h: 9.875rem;
+    --px-chart-body-min-h: calc(var(--px-chart-block-min-h) * 2 + 0.75rem);
+    min-height: var(--px-chart-body-min-h);
+  }
+
+  .px-chart-block {
+    @apply flex min-h-[var(--px-chart-block-min-h)] flex-1 flex-col border border-px-ink/15 bg-px-surface p-2.5 pb-3;
+  }
+
+  .px-chart-bars {
+    @apply flex h-[var(--px-chart-plot-h)] items-stretch justify-between gap-1 border-b border-px-ink/15 pt-0.5;
+  }
+
+  .px-chart-bars--months {
+    @apply gap-0.5;
+  }
+
+  .px-chart-bars--months .px-chart-bar-cell {
+    max-width: 1rem;
+  }
+
+  .px-chart-bar-col {
+    @apply grid min-h-0 min-w-0 flex-1 grid-rows-[1fr_auto] items-end justify-items-center gap-1;
+  }
+
+  .px-chart-bar-cell {
+    @apply flex h-full max-h-full w-full max-w-8 min-h-0 flex-col items-center justify-end;
+  }
+
+  .px-chart-bar {
+    @apply min-h-[3px] w-full min-w-2.5 border border-px-ink bg-px-ink box-border;
+  }
+
+  .px-chart-bar.accent {
+    @apply border-px-accent bg-px-accent;
+  }
+
+  .px-chart-bar.muted {
+    border-color: rgb(18 18 18 / 0.35);
+    background: rgb(18 18 18 / 0.2);
+  }
+
+  .px-chart-bar-value.is-accent {
+    @apply text-px-accent;
+  }
+
+  .px-chart-bar-value.is-muted {
+    @apply text-px-muted;
+  }
+}

@@ -38,4 +38,71 @@
   .px-table-skeleton-row {
     @apply border-t border-px-ink;
   }
+
+  /** 分页表：固定行数 + 隐藏滚动条（地图详情榜、玩家记录表等） */
+  .px-paged-table-wrap {
+    --px-paged-row-h: 3.5rem;
+    --px-paged-head-h: 2.5rem;
+    --px-paged-page-size: 10;
+    --px-paged-body-h: calc(var(--px-paged-page-size) * var(--px-paged-row-h));
+    max-height: calc(var(--px-paged-head-h) + var(--px-paged-body-h));
+    @apply overflow-x-auto overflow-y-hidden;
+    scrollbar-width: none;
+  }
+
+  .px-paged-table-wrap::-webkit-scrollbar {
+    display: none;
+  }
+
+  .px-paged-table-wrap thead tr {
+    height: var(--px-paged-head-h);
+  }
+
+  .px-paged-table-wrap tbody {
+    min-height: var(--px-paged-body-h);
+  }
+
+  .px-paged-table-wrap tbody tr {
+    height: var(--px-paged-row-h);
+    max-height: var(--px-paged-row-h);
+  }
+
+  .px-paged-table-wrap td,
+  .px-paged-table-wrap th {
+    @apply overflow-hidden;
+  }
+
+  /** 表内地图列：缩略图 + 名称（玩家记录等） */
+  .px-table-map-link {
+    @apply flex h-14 max-h-14 w-full items-stretch overflow-hidden;
+  }
+
+  /** 表内地图缩略图：左实右透明 mask（与首页最新记录一致） */
+  .px-table-map-link .px-map-thumb,
+  .px-home-recent-map-link .px-map-thumb {
+    @apply h-14 w-20 shrink-0;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 28%,
+      rgb(0 0 0 / 0.55) 62%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 28%,
+      rgb(0 0 0 / 0.55) 62%,
+      transparent 100%
+    );
+  }
+
+  .px-table-map-link-text {
+    @apply flex min-w-0 flex-1 items-center py-2 pr-3 pl-0.5;
+  }
+
+  /** Tier 列：芯片按内容宽，不随 flex 单元格拉满 */
+  .px-table-tier-cell .px-table-cell-content {
+    @apply items-start;
+  }
 }

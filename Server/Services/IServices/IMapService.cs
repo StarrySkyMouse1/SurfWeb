@@ -12,6 +12,8 @@ public interface IMapService
     Task<(IReadOnlyList<LeaderboardEntryDto> Items, int Total)> GetLeaderboardAsync(
         string mapName, byte track, byte? stage, int page, int pageSize, CancellationToken ct = default);
 
-    /// <summary>??????????????? Tier?????????</summary>
+    Task<MapCheckpointChartDto?> GetCheckpointChartAsync(
+        string mapName, byte track = 0, int limit = 10, CancellationToken ct = default);
+
     Task<int?> GetMapTierByMapNameAsync(string mapName, CancellationToken ct = default);
 }

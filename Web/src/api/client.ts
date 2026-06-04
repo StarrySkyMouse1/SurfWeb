@@ -56,6 +56,19 @@ export interface MapDetail {
   worldRecordPlayer?: string
   worldRecordAuth?: number
   bonusTracks: number[]
+  stages: number[]
+}
+
+export interface MapCheckpointSeries {
+  rank: number
+  auth: number
+  playerName?: string
+  cumulativeSeconds: (number | null)[]
+}
+
+export interface MapCheckpointChart {
+  checkpointLabels: string[]
+  series: MapCheckpointSeries[]
 }
 
 export interface LeaderboardEntry {
@@ -69,27 +82,65 @@ export interface LeaderboardEntry {
   date?: string
 }
 
+export type PlayerRecordCategory = 'recent' | 'wr' | 'incomplete'
+export type PlayerRecordScope = 'main' | 'stage' | 'bonus'
+
 export interface PlayerSummary {
   auth: number
   name?: string
   points: number
-  playtime: number
-  completionCount: number
   pointsRank: number
+  playtime: number
   playtimeRank: number
-  completionRank: number
+  mainCompletionCount: number
+  mainCompletionRank: number
+  bonusCompletionCount: number
+  bonusCompletionRank: number
+  wrCount: number
+  wrRank: number
+  mainWrCount: number
+  mainWrRank: number
+  stageWrCount: number
+  stageWrRank: number
+  bonusWrCount: number
+  bonusWrRank: number
 }
 
-export interface PlayerCompletion {
+export interface PlayerRecord {
   map: string
   tier?: number
-  time: number
-  timeFormatted: string
-  style: number
+  track?: number
+  stage?: number
+  time?: number
+  timeFormatted?: string
   sync?: number
   date?: string
+  /** 全服该图/赛道/阶段最快时间；仅近期记录 */
   worldRecordTime?: number
+  /** 与全服 WR 的秒差；近期记录 Tab 由后端填充；持 WR 时为 0 */
   gapFromWr?: number
+  status?: string
+}
+
+export interface PlayerChartBar {
+  label: string
+  value: number
+}
+
+export interface PlayerCharts {
+  primaryTitle: string
+  tierTitle: string
+  primaryBars: PlayerChartBar[]
+  tierBars: PlayerChartBar[]
+  rangeTotal: number
+  topTierLabel?: string
+  primaryFooterLeft?: string
+  primaryFooterRight?: string
+}
+
+export interface PlayerRecordsPage {
+  items: PlayerRecord[]
+  charts: PlayerCharts
 }
 
 export interface RecentRecord {

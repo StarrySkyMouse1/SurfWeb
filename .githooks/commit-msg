@@ -1,0 +1,4 @@
+#!/bin/sh
+# 去掉 Cursor 自动追加的 Co-authored-by，仅保留本地配置的 Author
+grep -v '^Co-authored-by: Cursor <cursoragent@cursor.com>$' "$1" > "$1.tmp" && mv -f "$1.tmp" "$1"
+exit 0

@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SurfWeb · 地图详情 v2 视觉稿 · surf_angst</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --px-ink: #121212;
+      --px-paper: #f3f1eb;
+      --px-paper-2: #ffffff;
+      --px-muted: #6b6b6b;
+      --px-accent: #3d5afe;
+      --px-accent-soft: #e8edff;
+      --px-grid: rgba(18, 18, 18, 0.04);
+      --px-shadow: 4px 4px 0 var(--px-ink);
+      --px-shadow-sm: 2px 2px 0 var(--px-ink);
+      --px-border: 2px solid var(--px-ink);
+      --px-divider-on-dark: 1px solid rgba(255, 255, 255, 0.22);
+      /* 黄金比例 φ : 1 → 小 : 大 ≈ 38.2% : 61.8% */
+      --px-phi-inv: 38.196601125%;
+      --px-phi: 61.803398875%;
+    }
+    body {
+      font-family: "IBM Plex Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: var(--px-paper);
+      background-image:
+        linear-gradient(var(--px-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--px-grid) 1px, transparent 1px);
+      background-size: 8px 8px;
+      color: var(--px-ink);
+    }
+    .font-pixel { font-family: Silkscreen, monospace; letter-spacing: 0.02em; }
+    .font-mono-time { font-family: "JetBrains Mono", monospace; }
+    .text-muted { color: var(--px-muted); }
+    .px-card {
+      border: var(--px-border);
+      background: var(--px-paper-2);
+      box-shadow: var(--px-shadow);
+    }
+    .px-chip {
+      border: var(--px-border);
+      font-family: Silkscreen, monospace;
+      font-size: 10px;
+      line-height: 1;
+      padding: 4px 6px;
+      box-shadow: 2px 2px 0 var(--px-ink);
+      display: inline-block;
+      background: var(--px-paper-2);
+    }
+    .px-tier-3 { color: #2563eb; border-color: #2563eb; }
+    .px-map-hero-img {
+      aspect-ratio: 16 / 9;
+      width: 100%;
+      border-top: var(--px-border);
+      background:
+        linear-gradient(135deg, #c4b5fd 0%, #93c5fd 40%, #6ee7b7 100%);
+      image-rendering: pixelated;
+    }
+    @media (min-width: 1024px) {
+      .px-map-hero-img {
+        aspect-ratio: auto;
+        width: 20rem;
+        min-height: 9.5rem;
+        border-top: none;
+        border-left: var(--px-border);
+      }
+    }
+    .px-section-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 0.75rem;
+      border-bottom: var(--px-border);
+      background: var(--px-ink);
+      color: var(--px-paper-2);
+      padding: 0.625rem 1rem;
+    }
+    .px-section-code {
+      font-family: Silkscreen, monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.7;
+    }
+    .px-table-head {
+      background: var(--px-ink);
+      color: var(--px-paper-2);
+    }
+    .px-table-head th {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-align: left;
+    }
+    .px-table-head th.text-right { text-align: right; }
+    .px-row {
+      border-top: 1px solid rgba(18, 18, 18, 0.12);
+      height: 3.5rem;
+    }
+    .px-row:hover { background: var(--px-ink); color: var(--px-paper-2); }
+    .px-row:hover a { color: inherit; }
+    .px-row:hover .text-muted { color: rgba(255, 255, 255, 0.65); }
+    .px-row td { padding: 0.5rem 0.75rem; vertical-align: middle; font-size: 0.875rem; }
+    .px-rank { font-family: Silkscreen, monospace; text-align: center; width: 3rem; }
+    .px-rank-wr { color: var(--px-accent); }
+    .px-pagination {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      border-top: var(--px-border);
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      color: var(--px-muted);
+    }
+    .px-pagination-btns { display: flex; gap: 0.5rem; }
+    .px-pagination-btns button {
+      border: var(--px-border);
+      background: var(--px-paper-2);
+      box-shadow: 2px 2px 0 var(--px-ink);
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .px-line-chart-path { fill: none; stroke-width: 2; stroke-linecap: square; stroke-linejoin: round; }
+    .px-line-chart-path.leader { stroke: var(--px-accent); stroke-width: 2.5; }
+    .px-line-chart-path.muted { stroke: rgba(18, 18, 18, 0.22); }
+    /* 图例：辅助小字（略小于右侧表体 0.875rem） */
+    .px-legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.2rem 0.45rem;
+      flex: 0 0 auto;
+      margin: 0;
+      padding: 0.375rem 0 0;
+      border-top: 1px solid rgba(18, 18, 18, 0.12);
+      font-size: 0.75rem;
+      line-height: 1.2;
+      color: var(--px-ink);
+    }
+    .px-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      flex: 0 0 auto;
+      max-width: 100%;
+      white-space: nowrap;
+    }
+    .px-legend-rank {
+      flex-shrink: 0;
+      font-family: Silkscreen, monospace;
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      color: var(--legend-color, var(--px-muted));
+    }
+    .px-legend-name {
+      font-family: "IBM Plex Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 0.75rem;
+      font-weight: 500;
+      line-height: 1.2;
+      color: var(--px-ink);
+      letter-spacing: normal;
+      text-transform: none;
+    }
+    .px-legend-swatch {
+      width: 0.625rem;
+      height: 2px;
+      flex-shrink: 0;
+      background: var(--legend-color, rgba(18, 18, 18, 0.22));
+    }
+    .px-legend-item--rank-01 .px-legend-swatch {
+      height: 3px;
+    }
+    .px-table-player {
+      font-family: "IBM Plex Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: inherit;
+      font-weight: 600;
+      color: var(--px-ink);
+    }
+    .px-row:hover .px-table-player {
+      color: inherit;
+    }
+    /* 检查点折线图：ECharts 5（CDN） */
+    .px-cp-chart-area {
+      position: relative;
+      width: 100%;
+      flex: 0 0 auto;
+      height: 16rem;
+      min-height: 16rem;
+      padding-right: 0.375rem;
+      box-sizing: border-box;
+    }
+    #cp-chart {
+      width: 100%;
+      height: 100%;
+      min-height: 16rem;
+    }
+    /* 主线区：左图右表，两张独立卡片 + 间距，宽度 φ⁻¹ : φ */
+    .px-main-row {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.5rem;
+    }
+    .px-main-chart-body {
+      padding: 0.5rem 0.625rem 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+    .px-main-chart-card,
+    .px-main-table-card {
+      min-width: 0;
+      align-self: flex-start;
+      width: 100%;
+    }
+    /* 分页表：表头 + 固定 10 行（对齐首页 / 玩家页 --px-home-table-block-h） */
+    .px-paged-table-wrap {
+      --px-table-row-h: 3.5rem;
+      --px-table-head-h: 2.5rem;
+      --px-table-body-h: calc(10 * var(--px-table-row-h));
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
+    .px-paged-table-wrap::-webkit-scrollbar {
+      display: none;
+    }
+    .px-paged-table-wrap thead tr {
+      height: var(--px-table-head-h);
+    }
+    .px-paged-table-wrap tbody {
+      min-height: var(--px-table-body-h);
+    }
+    .px-paged-table-wrap tbody tr.px-row {
+      height: var(--px-table-row-h);
+      max-height: var(--px-table-row-h);
+    }
+    .px-paged-table-wrap tbody tr.px-row-fill td {
+      padding: 0;
+      border-top: 1px solid rgba(18, 18, 18, 0.12);
+    }
+    @media (min-width: 1024px) {
+      .px-main-row {
+        flex-direction: row;
+        align-items: flex-start;
+      }
+      .px-cp-chart-area {
+        height: 20rem;
+        min-height: 20rem;
+      }
+      #cp-chart {
+        min-height: 20rem;
+      }
+      .px-main-chart-card {
+        flex: 0 0 var(--px-phi-inv);
+        max-width: var(--px-phi-inv);
+        width: auto;
+      }
+      .px-main-table-card {
+        flex: 1 1 var(--px-phi);
+        width: auto;
+      }
+    }
+    .px-record-grid {
+      display: grid;
+      gap: 1.5rem;
+    }
+    @media (min-width: 1280px) {
+      .px-record-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    /* 地图详情 Tab：对齐 MapDetailTabs px-chip */
+    .px-map-detail-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 2.375rem;
+    }
+    .px-tab-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: var(--px-border);
+      background: var(--px-paper-2);
+      box-shadow: var(--px-shadow-sm);
+      padding: 0.5rem 1rem;
+      font-family: Silkscreen, monospace;
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      color: var(--px-ink);
+      cursor: pointer;
+    }
+    .px-tab-chip:hover:not(.px-tab-chip-active) {
+      background: var(--px-accent-soft);
+    }
+    .px-tab-chip-active {
+      background: var(--px-ink);
+      color: var(--px-paper-2);
+      box-shadow: none;
+      transform: translate(2px, 2px);
+    }
+    .px-map-tab-panel {
+      margin-top: 1.5rem;
+    }
+    .px-map-tab-panel[hidden] {
+      display: none;
+    }
+    /* 阶段/奖励：表格外小 Tab（对齐玩家页 px-filter-scope-btn） */
+    .px-record-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      min-width: 0;
+    }
+    .px-filter-scope {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+    }
+    .px-filter-scope-btn {
+      border: var(--px-border);
+      background: var(--px-paper-2);
+      box-shadow: var(--px-shadow-sm);
+      box-sizing: border-box;
+      width: 3.25rem;
+      min-width: 3.25rem;
+      padding: 0.2rem 0.5rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.05s ease;
+    }
+    .px-filter-scope-btn[aria-selected="true"] {
+      background: var(--px-ink);
+      color: var(--px-paper-2);
+      box-shadow: none;
+      transform: translate(1px, 1px);
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+  <div class="mx-auto max-w-7xl px-4 py-8">
+    <div class="mb-6 px-card p-6">
+      <p class="font-pixel text-[10px] text-[var(--px-accent)]">DESIGN PREVIEW · MAP DETAIL v2</p>
+      <h1 class="mt-2 text-2xl font-bold tracking-tight">地图详情 · surf_angst</h1>
+      <p class="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
+        静态 HTML 视觉稿，对齐全站像素简约壳。实现代码在 <code class="font-mono-time text-xs">Web/src/views/map-detail/</code>；
+        本文件路径：<code class="font-mono-time text-xs">docs/design-previews/ui-map-detail-v2.html</code>（浏览器直接打开即可评审）。
+      </p>
+      <ul class="mt-4 grid gap-2 text-xs text-muted sm:grid-cols-2">
+        <li>· 顶栏：地图名、Tier、WR、完赛人数、预览图</li>
+        <li>· 折线图：TOP10 十色（红→暖→冷，名次越高越亮）；tooltip <code>+0.000</code></li>
+        <li>· Tab：<strong>主线</strong> / <strong>阶段·奖励</strong>（`px-chip` 芯片切换）</li>
+        <li>· 阶段·奖励 Tab：表格外筛选；表体固定 <strong>10 行</strong> 高度（不足补空行）</li>
+      </ul>
+    </div>
+
+    <header class="px-card mb-6 flex flex-wrap items-center justify-between gap-4 px-4 py-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center border-2 border-[var(--px-ink)] bg-[var(--px-accent)] font-pixel text-[9px] text-white shadow-[2px_2px_0_var(--px-ink)]">SW</div>
+        <div>
+          <p class="font-pixel text-[10px] text-[var(--px-accent)]">SURFWEB</p>
+          <p class="text-sm font-bold">地满滑翔 · 记录查询</p>
+        </div>
+      </div>
+      <nav class="flex flex-wrap gap-2 text-xs font-bold">
+        <span class="px-3 py-1 opacity-50">首页</span>
+        <span class="px-3 py-1 opacity-50">地图</span>
+        <span class="border-2 border-[var(--px-ink)] bg-[var(--px-ink)] px-3 py-1 text-white">surf_angst</span>
+      </nav>
+    </header>
+
+    <main class="space-y-6">
+      <!-- 地图头图 -->
+      <section class="px-card overflow-hidden">
+        <div class="flex flex-col lg:flex-row lg:items-stretch">
+          <div class="min-w-0 flex-1 p-6">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="px-chip px-tier-3">T3</span>
+              <h2 class="text-2xl font-black break-all">surf_angst</h2>
+            </div>
+            <p class="mt-4 font-mono-time text-sm">WR 1:42.583 · 大茶杯</p>
+            <p class="mt-1 text-sm text-muted">128 人完赛</p>
+          </div>
+          <div class="px-map-hero-img shrink-0 lg:w-80" role="img" aria-label="地图预览占位"></div>
+        </div>
+      </section>
+
+      <div class="px-map-detail-tabs" role="tablist" aria-label="地图记录分类">
+        <button type="button" class="px-tab-chip px-tab-chip-active" role="tab" id="tab-btn-main" aria-selected="true" aria-controls="tab-panel-main" data-tab="main">主线</button>
+        <button type="button" class="px-tab-chip" role="tab" id="tab-btn-stage-bonus" aria-selected="false" aria-controls="tab-panel-stage-bonus" data-tab="stage-bonus" tabindex="-1">阶段·奖励</button>
+      </div>
+
+      <div id="tab-panel-main" class="px-map-tab-panel space-y-6" role="tabpanel" aria-labelledby="tab-btn-main">
+      <div class="px-main-row">
+        <section class="px-card px-main-chart-card" aria-label="主线 TOP10 检查点折线图">
+            <div class="px-section-head">
+              <div>
+                <p class="px-section-code">MAIN · CP</p>
+                <p class="text-sm font-bold">检查点差异</p>
+              </div>
+              <p class="font-mono-time text-[10px] opacity-75">TOP10</p>
+            </div>
+            <div class="px-main-chart-body">
+          <div class="px-cp-chart-area" id="cp-chart-area">
+            <div id="cp-chart" role="img" aria-label="主线 TOP10 检查点差异，悬停检查点查看各玩家相对差距"></div>
+          </div>
+          <div class="px-legend" id="cp-legend" aria-label="TOP10 图例"></div>
+            </div>
+        </section>
+
+        <section class="px-card overflow-hidden px-main-table-card" aria-label="主线记录">
+          <div class="px-section-head">
+            <div><p class="px-section-code">MAIN</p><p class="text-sm font-bold">主线记录</p></div>
+            <p class="font-mono-time text-[10px] opacity-75">全服排行 · 每页 10</p>
+          </div>
+          <div class="px-paged-table-wrap">
+            <table class="w-full min-w-[560px] table-fixed text-left">
+              <thead class="px-table-head">
+                <tr>
+                  <th class="px-rank">#</th>
+                  <th>玩家</th>
+                  <th class="text-right">时间</th>
+                  <th class="text-right">同步</th>
+                  <th class="text-right">日期</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="px-row font-semibold">
+                  <td class="px-rank px-rank-wr">01</td>
+                  <td><a href="#" class="px-table-player underline-offset-2 hover:underline">大茶杯</a></td>
+                  <td class="text-right font-mono-time">1:42.583</td>
+                  <td class="text-right font-mono-time">98%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-02</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">02</td>
+                  <td><a href="#" class="px-table-player underline-offset-2 hover:underline">仅仅留</a></td>
+                  <td class="text-right font-mono-time">1:45.780 <span class="text-xs opacity-70">+3.197</span></td>
+                  <td class="text-right font-mono-time">96%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-03</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">03</td>
+                  <td><a href="#" class="px-table-player underline-offset-2 hover:underline">我诗人</a></td>
+                  <td class="text-right font-mono-time">1:48.420 <span class="text-xs opacity-70">+5.837</span></td>
+                  <td class="text-right font-mono-time">94%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-02</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">04</td>
+                  <td><a href="#" class="px-table-player underline-offset-2 hover:underline">802349</a></td>
+                  <td class="text-right font-mono-time">1:52.150 <span class="text-xs opacity-70">+9.567</span></td>
+                  <td class="text-right font-mono-time">91%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-03</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">05</td>
+                  <td><a href="#" class="px-table-player underline-offset-2 hover:underline">龙龙</a></td>
+                  <td class="text-right font-mono-time">1:55.900 <span class="text-xs opacity-70">+13.317</span></td>
+                  <td class="text-right font-mono-time">89%</td>
+                  <td class="text-right font-mono-time text-xs">2026-05-31</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">06</td>
+                  <td><a href="#" class="px-table-player underline-offset-2 hover:underline">She is in the shadow</a></td>
+                  <td class="text-right font-mono-time">1:59.440 <span class="text-xs opacity-70">+16.857</span></td>
+                  <td class="text-right font-mono-time">87%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-01</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">07</td>
+                  <td><a href="#" class="px-table-player underline-offset-2 hover:underline">Rochies</a></td>
+                  <td class="text-right font-mono-time">2:02.010 <span class="text-xs opacity-70">+19.427</span></td>
+                  <td class="text-right font-mono-time">85%</td>
+                  <td class="text-right font-mono-time text-xs">2026-05-31</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">08</td>
+                  <td><a href="#" class="px-table-player underline-offset-2 hover:underline">Bumama</a></td>
+                  <td class="text-right font-mono-time">2:05.330 <span class="text-xs opacity-70">+22.747</span></td>
+                  <td class="text-right font-mono-time">84%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-01</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">09</td>
+                  <td><a href="#" class="px-table-player underline-offset-2 hover:underline">天台交易员</a></td>
+                  <td class="text-right font-mono-time">2:08.700 <span class="text-xs opacity-70">+26.117</span></td>
+                  <td class="text-right font-mono-time">82%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-01</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">10</td>
+                  <td><a href="#" class="px-table-player underline-offset-2 hover:underline">鼠鼠</a></td>
+                  <td class="text-right font-mono-time">2:11.880 <span class="text-xs opacity-70">+29.297</span></td>
+                  <td class="text-right font-mono-time">80%</td>
+                  <td class="text-right font-mono-time text-xs">2026-05-30</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-pagination">
+            <span>共 48 条 · 第 1 / 5 页</span>
+            <div class="px-pagination-btns">
+              <button type="button" disabled>上一页</button>
+              <button type="button">下一页</button>
+            </div>
+          </div>
+        </section>
+      </div>
+      </div>
+
+      <div id="tab-panel-stage-bonus" class="px-map-tab-panel" role="tabpanel" aria-labelledby="tab-btn-stage-bonus" hidden>
+      <div class="px-record-grid">
+        <!-- 阶段 -->
+        <div class="px-record-col">
+          <div class="px-filter-scope" role="tablist" aria-label="阶段范围" data-scope-tablist="stage">
+            <button type="button" class="px-filter-scope-btn" role="tab" data-scope-value="s1" aria-selected="true">S1</button>
+            <button type="button" class="px-filter-scope-btn" role="tab" data-scope-value="s2" aria-selected="false">S2</button>
+            <button type="button" class="px-filter-scope-btn" role="tab" data-scope-value="s3" aria-selected="false">S3</button>
+          </div>
+        <section class="px-card overflow-hidden px-stage-card" aria-label="阶段记录">
+          <div class="px-section-head">
+            <div><p class="px-section-code">STAGE</p><p class="text-sm font-bold">阶段记录</p></div>
+            <p class="font-mono-time text-[10px] opacity-75">全服排行</p>
+          </div>
+          <div class="px-paged-table-wrap">
+            <table class="w-full min-w-[520px] table-fixed text-left">
+              <thead class="px-table-head">
+                <tr>
+                  <th class="px-rank">#</th>
+                  <th>阶段</th>
+                  <th>玩家</th>
+                  <th class="text-right">时间</th>
+                  <th class="text-right">同步</th>
+                  <th class="text-right">日期</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="px-row font-semibold">
+                  <td class="px-rank px-rank-wr">01</td>
+                  <td class="font-pixel text-xs">S3</td>
+                  <td><a href="#" class="px-table-player">大茶杯</a></td>
+                  <td class="text-right font-mono-time">0:28.400</td>
+                  <td class="text-right font-mono-time">97%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-02</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">02</td>
+                  <td class="font-pixel text-xs">S2</td>
+                  <td><a href="#" class="px-table-player">大茶杯</a></td>
+                  <td class="text-right font-mono-time">0:29.100 <span class="text-xs opacity-70">+0.700</span></td>
+                  <td class="text-right font-mono-time">95%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-02</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">03</td>
+                  <td class="font-pixel text-xs">S1</td>
+                  <td><a href="#" class="px-table-player">仅仅留</a></td>
+                  <td class="text-right font-mono-time">0:31.200 <span class="text-xs opacity-70">+2.800</span></td>
+                  <td class="text-right font-mono-time">93%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-03</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">04</td>
+                  <td class="font-pixel text-xs">S1</td>
+                  <td><a href="#" class="px-table-player">我诗人</a></td>
+                  <td class="text-right font-mono-time">0:32.000 <span class="text-xs opacity-70">+3.600</span></td>
+                  <td class="text-right font-mono-time">92%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-02</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">05</td>
+                  <td class="font-pixel text-xs">S1</td>
+                  <td><a href="#" class="px-table-player">大茶杯</a></td>
+                  <td class="text-right font-mono-time">0:33.500 <span class="text-xs opacity-70">+5.100</span></td>
+                  <td class="text-right font-mono-time">90%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-02</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">06</td>
+                  <td class="font-pixel text-xs">S2</td>
+                  <td><a href="#" class="px-table-player">802349</a></td>
+                  <td class="text-right font-mono-time">0:34.800 <span class="text-xs opacity-70">+6.400</span></td>
+                  <td class="text-right font-mono-time">88%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-03</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">07</td>
+                  <td class="font-pixel text-xs">S1</td>
+                  <td><a href="#" class="px-table-player">802349</a></td>
+                  <td class="text-right font-mono-time">0:35.600 <span class="text-xs opacity-70">+7.200</span></td>
+                  <td class="text-right font-mono-time">86%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-03</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">08</td>
+                  <td class="font-pixel text-xs">S2</td>
+                  <td><a href="#" class="px-table-player">She is in the shadow</a></td>
+                  <td class="text-right font-mono-time">0:36.200 <span class="text-xs opacity-70">+7.800</span></td>
+                  <td class="text-right font-mono-time">85%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-01</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-pagination">
+            <span>共 24 条 · 第 1 / 3 页</span>
+            <div class="px-pagination-btns"><button type="button" disabled>上一页</button><button type="button">下一页</button></div>
+          </div>
+        </section>
+        </div>
+
+        <!-- 奖励 -->
+        <div class="px-record-col">
+          <div class="px-filter-scope" role="tablist" aria-label="奖励赛道" data-scope-tablist="bonus">
+            <button type="button" class="px-filter-scope-btn" role="tab" data-scope-value="b1" aria-selected="true">b1</button>
+            <button type="button" class="px-filter-scope-btn" role="tab" data-scope-value="b2" aria-selected="false">b2</button>
+            <button type="button" class="px-filter-scope-btn" role="tab" data-scope-value="b3" aria-selected="false">b3</button>
+          </div>
+        <section class="px-card overflow-hidden" aria-label="奖励记录">
+          <div class="px-section-head">
+            <div><p class="px-section-code">BONUS</p><p class="text-sm font-bold">奖励记录</p></div>
+            <p class="font-mono-time text-[10px] opacity-75">全服排行</p>
+          </div>
+          <div class="px-paged-table-wrap">
+            <table class="w-full min-w-[520px] table-fixed text-left">
+              <thead class="px-table-head">
+                <tr>
+                  <th class="px-rank">#</th>
+                  <th>赛道</th>
+                  <th>玩家</th>
+                  <th class="text-right">时间</th>
+                  <th class="text-right">同步</th>
+                  <th class="text-right">日期</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="px-row font-semibold">
+                  <td class="px-rank px-rank-wr">01</td>
+                  <td class="font-pixel text-xs">b1</td>
+                  <td><a href="#" class="font-semibold">802349</a></td>
+                  <td class="text-right font-mono-time">0:45.200</td>
+                  <td class="text-right font-mono-time">96%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-03</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">02</td>
+                  <td class="font-pixel text-xs">b1</td>
+                  <td><a href="#" class="font-semibold">小丑竟是我</a></td>
+                  <td class="text-right font-mono-time">0:48.100 <span class="text-xs opacity-70">+2.900</span></td>
+                  <td class="text-right font-mono-time">94%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-03</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">03</td>
+                  <td class="font-pixel text-xs">b1</td>
+                  <td><a href="#" class="font-semibold">鼠鼠</a></td>
+                  <td class="text-right font-mono-time">0:52.300 <span class="text-xs opacity-70">+7.100</span></td>
+                  <td class="text-right font-mono-time">91%</td>
+                  <td class="text-right font-mono-time text-xs">2026-06-03</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">04</td>
+                  <td class="font-pixel text-xs">b1</td>
+                  <td><a href="#" class="font-semibold">大茶杯</a></td>
+                  <td class="text-right font-mono-time">0:54.000 <span class="text-xs opacity-70">+8.800</span></td>
+                  <td class="text-right font-mono-time">89%</td>
+                  <td class="text-right font-mono-time text-xs">2026-05-30</td>
+                </tr>
+                <tr class="px-row">
+                  <td class="px-rank">05</td>
+                  <td class="font-pixel text-xs">b1</td>
+                  <td><a href="#" class="font-semibold">鼠鼠</a></td>
+                  <td class="text-right font-mono-time">0:56.700 <span class="text-xs opacity-70">+11.500</span></td>
+                  <td class="text-right font-mono-time">87%</td>
+                  <td class="text-right font-mono-time text-xs">2026-05-30</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-pagination">
+            <span>共 12 条 · 第 1 / 2 页</span>
+            <div class="px-pagination-btns"><button disabled>上一页</button><button>下一页</button></div>
+          </div>
+        </section>
+        </div>
+      </div>
+      </div>
+    </main>
+
+    <footer class="mt-10 border-t-2 border-[var(--px-ink)] py-6 text-center text-xs text-muted">
+      <p class="font-bold">地满滑翔</p>
+      <p class="mt-0.5 font-pixel text-[9px]">SURF RECORD</p>
+    </footer>
+  </div>
+  <script>
+(function () {
+  const CP_LABELS = ['起点', 'CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6', '终点'];
+  /** 色轮：红(暖) → 橙黄绿 → 青蓝(冷)；01 最亮，10 最暗 */
+  const RANK_COLORS = [
+    '#fa5252', '#ff922b', '#fcc419', '#ced94d', '#82c91e',
+    '#37b24d', '#15aabf', '#339af0', '#4c6ef5', '#364fc7',
+  ];
+  /** 累计用时（秒）；各 CP 最快者会换人，终点与主线榜 WR 一致 */
+  const PLAYERS = [
+    { rank: '01', name: '大茶杯', leader: true, secs: [0, 19.4, 41.2, 64.8, 76.5, 88.2, 96.1, 102.583] },
+    { rank: '02', name: '仅仅留', secs: [0, 20.1, 39.8, 63.5, 75.2, 87.0, 99.2, 105.780] },
+    { rank: '03', name: '我诗人', secs: [0, 21.0, 43.2, 66.0, 79.5, 92.8, 102.5, 108.420] },
+    { rank: '04', name: '802349', secs: [0, 17.8, 42.5, 65.1, 78.0, 91.5, 104.0, 112.150] },
+    { rank: '05', name: '龙龙', secs: [0, 20.5, 44.0, 61.2, 80.8, 94.0, 108.5, 115.900] },
+    { rank: '06', name: 'She is in the shadow', secs: [0, 22.8, 45.5, 68.2, 83.0, 97.8, 112.0, 119.440] },
+    { rank: '07', name: 'Rochies', secs: [0, 23.2, 46.0, 69.5, 85.2, 100.0, 115.5, 122.010] },
+    { rank: '08', name: 'Bumama', secs: [0, 21.5, 45.8, 70.5, 88.0, 102.0, 118.0, 125.330] },
+    { rank: '09', name: '天台交易员', secs: [0, 24.0, 47.2, 71.0, 87.5, 104.0, 120.0, 128.700] },
+    { rank: '10', name: '鼠鼠', secs: [0, 22.3, 38.9, 67.5, 82.1, 96.5, 115.0, 131.880] },
+  ];
+
+  function formatAxisTick(sec) {
+    const m = Math.floor(sec / 60);
+    const s = Math.round(sec % 60);
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  /** 与全站 formatTimeGap 一致：相对该检查点最快记录的秒差 */
+  function formatTimeGap(deltaSeconds) {
+    const d = Math.max(0, deltaSeconds);
+    return '+' + d.toFixed(3);
+  }
+
+  function fastestSecAtCp(cpIndex) {
+    let min = Infinity;
+    PLAYERS.forEach((p) => {
+      min = Math.min(min, p.secs[cpIndex]);
+    });
+    return min;
+  }
+
+  function renderLegend() {
+    const root = document.getElementById('cp-legend');
+    root.innerHTML = PLAYERS.map((p, i) => {
+      const color = RANK_COLORS[i];
+      const rankClass = 'px-legend-item--rank-' + p.rank;
+      return (
+        '<div class="px-legend-item ' + rankClass + '" style="--legend-color:' + color + '">' +
+        '<span class="px-legend-swatch" aria-hidden="true"></span>' +
+        '<span class="px-legend-rank">' + p.rank + '</span>' +
+        '<span class="px-legend-name">' + p.name + '</span></div>'
+      );
+    }).join('');
+  }
+
+  function computeYMax() {
+    let maxSec = 0;
+    PLAYERS.forEach((p) => {
+      p.secs.forEach((sec) => {
+        maxSec = Math.max(maxSec, sec);
+      });
+    });
+    const padded = maxSec * 1.04;
+    return Math.max(Math.ceil(padded / 15) * 15, 60);
+  }
+
+  const yMax = computeYMax();
+
+  const series = PLAYERS.map((p, i) => {
+    const color = RANK_COLORS[i];
+    const top = i === 0;
+    return {
+      name: p.name,
+      type: 'line',
+      data: p.secs,
+      showSymbol: true,
+      symbol: 'circle',
+      symbolSize: top ? 7 : 5,
+      z: 10 - i,
+      lineStyle: { width: top ? 2.5 : 2, color },
+      itemStyle: {
+        color: '#ffffff',
+        borderColor: color,
+        borderWidth: 2,
+      },
+      emphasis: {
+        focus: 'series',
+        lineStyle: { width: top ? 3 : 2.5, color },
+      },
+    };
+  });
+
+  const el = document.getElementById('cp-chart');
+  const chart = echarts.init(el, null, { renderer: 'canvas' });
+
+  chart.setOption({
+    animation: false,
+    grid: { left: 6, right: 36, top: 12, bottom: 10, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: CP_LABELS,
+      boundaryGap: ['4%', '12%'],
+      axisLine: { lineStyle: { color: '#121212', width: 2 } },
+      axisTick: { show: false },
+      axisLabel: {
+        color: '#121212',
+        fontFamily: 'Silkscreen, monospace',
+        fontSize: 13,
+        interval: 0,
+        margin: 10,
+      },
+      axisPointer: {
+        lineStyle: { color: '#3d5afe', width: 2 },
+        label: { show: false },
+      },
+    },
+    yAxis: {
+      type: 'value',
+      min: 0,
+      max: yMax,
+      splitNumber: 4,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: '#121212',
+        fontFamily: '"JetBrains Mono", monospace',
+        fontSize: 14,
+        fontWeight: 600,
+        formatter: (v) => formatAxisTick(v),
+        margin: 8,
+      },
+      splitLine: { lineStyle: { color: 'rgba(18, 18, 18, 0.1)' } },
+    },
+    tooltip: {
+      trigger: 'axis',
+      confine: true,
+      backgroundColor: '#121212',
+      borderColor: '#121212',
+      borderWidth: 2,
+      padding: [8, 10],
+      extraCssText: 'box-shadow:4px 4px 0 #121212;border-radius:0;',
+      textStyle: { color: '#f3f1eb', fontSize: 12, fontFamily: '"IBM Plex Sans", sans-serif' },
+      axisPointer: {
+        type: 'line',
+        lineStyle: { color: '#3d5afe', width: 2 },
+      },
+      formatter(params) {
+        const title = params[0].axisValue;
+        const cpIndex = params[0].dataIndex;
+        const fastest = fastestSecAtCp(cpIndex);
+        const rows = params
+          .slice()
+          .sort((a, b) => a.value - b.value)
+          .map((item) => {
+            const lineColor = RANK_COLORS[item.seriesIndex] || item.color;
+            const swatch =
+              '<span style="display:inline-block;width:10px;height:' + (item.seriesIndex === 0 ? 3 : 2) +
+              'px;background:' + lineColor + ';margin-right:6px"></span>';
+            const gap = formatTimeGap(item.value - fastest);
+            const time = '<span style="font-family:JetBrains Mono,monospace;font-size:11px;margin-right:8px;min-width:4.25rem">' +
+              gap + '</span>';
+            return '<div style="margin-top:4px;display:flex;align-items:center;min-width:0">' +
+              swatch + time + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+              item.seriesName + '</span></div>';
+          });
+        return '<div style="font-family:Silkscreen,monospace;font-size:11px;letter-spacing:.04em;padding-bottom:6px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.22)">' +
+          title + ' · 相对最快</div>' + rows.join('');
+      },
+    },
+    series,
+  });
+
+  function layoutChart() {
+    chart.resize();
+  }
+
+  renderLegend();
+  layoutChart();
+  requestAnimationFrame(layoutChart);
+  window.addEventListener('resize', layoutChart);
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(layoutChart).observe(el.parentElement);
+  }
+
+  window.__cpChartResize = layoutChart;
+})();
+
+(function () {
+  const tabs = document.querySelectorAll('.px-map-detail-tabs [role="tab"]');
+  const panels = {
+    main: document.getElementById('tab-panel-main'),
+    'stage-bonus': document.getElementById('tab-panel-stage-bonus'),
+  };
+
+  function activateTab(tabId) {
+    tabs.forEach((btn) => {
+      const active = btn.dataset.tab === tabId;
+      btn.classList.toggle('px-tab-chip-active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      btn.tabIndex = active ? 0 : -1;
+    });
+    Object.entries(panels).forEach(([id, panel]) => {
+      const show = id === tabId;
+      panel.hidden = !show;
+    });
+    if (tabId === 'main' && typeof window.__cpChartResize === 'function') {
+      requestAnimationFrame(() => {
+        window.__cpChartResize();
+        requestAnimationFrame(window.__cpChartResize);
+      });
+    }
+  }
+
+  tabs.forEach((btn) => {
+    btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+  });
+})();
+
+(function () {
+  document.querySelectorAll('[data-scope-tablist]').forEach((list) => {
+    const btns = list.querySelectorAll('.px-filter-scope-btn');
+    btns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        btns.forEach((b) => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
+      });
+    });
+  });
+})();
+
+(function () {
+  const PAGE_ROWS = 10;
+  document.querySelectorAll('.px-paged-table-wrap table').forEach((table) => {
+    const tbody = table.tBodies[0];
+    if (!tbody) return;
+    const colCount = table.tHead?.rows[0]?.cells.length ?? 1;
+    const existing = tbody.querySelectorAll('tr:not(.px-row-fill)').length;
+    for (let i = existing; i < PAGE_ROWS; i++) {
+      const tr = document.createElement('tr');
+      tr.className = 'px-row px-row-fill';
+      tr.setAttribute('aria-hidden', 'true');
+      const td = document.createElement('td');
+      td.colSpan = colCount;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+  });
+})();
+  </script>
+</body>
+</html>

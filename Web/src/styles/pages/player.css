@@ -1,21 +1,150 @@
 @layer components {
-  .px-player-completion-map-cell {
-    @apply p-0 align-middle;
+  /** 外壳描边/阴影复用 .px-panel（见 PlayerPassportCard） */
+  .px-player-passport {
+    @apply relative overflow-hidden p-0;
   }
 
-  .px-player-completion-map-link {
-    @apply flex h-14 max-h-14 w-full items-stretch gap-2 overflow-hidden pr-3 pl-0 hover:opacity-90;
+  .px-player-passport-watermark {
+    @apply pointer-events-none absolute top-1/2 right-0 -translate-y-[52%] font-pixel leading-none tracking-tight text-px-ink select-none;
+    font-size: clamp(4.5rem, 14vw, 7.5rem);
+    opacity: 0.04;
   }
 
-  .px-player-completion-map-link .px-map-thumb {
-    @apply h-14 w-20 shrink-0;
+  .px-player-passport-header {
+    @apply flex items-center justify-between gap-3 border-b border-px-ink/15 bg-px-surface text-px-ink;
   }
 
-  .px-player-completion-map-name {
-    @apply flex min-w-0 flex-1 items-center py-2 pr-0;
+  .px-player-passport-header-main {
+    @apply min-w-0 px-4 py-3 pb-3.5;
   }
 
-  .px-player-completion-tier-cell {
-    @apply py-2 px-3 align-middle;
+  .px-player-passport-header-id {
+    @apply font-mono font-bold leading-none tracking-tight text-px-ink;
+    font-size: clamp(1.5rem, 4vw, 1.875rem);
+  }
+
+  .px-player-passport-header-sub {
+    @apply mt-1.5 text-[11px] text-px-muted;
+  }
+
+  .px-player-passport-bento {
+    @apply grid gap-2.5 bg-px-surface px-4 pt-3 pb-4;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 640px) {
+    .px-player-passport-bento {
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.35fr);
+      align-items: stretch;
+    }
+  }
+
+  @media (min-width: 640px) and (max-width: 960px) {
+    .px-player-passport-bento {
+      grid-template-columns: minmax(0, 0.82fr) minmax(0, 0.82fr) minmax(0, 1.5fr);
+    }
+  }
+
+  .px-player-passport-tile {
+    @apply relative z-[1] flex min-h-[3.375rem] flex-col justify-start border-2 border-px-ink px-2.5 py-2 pb-2.5;
+    background: linear-gradient(145deg, var(--color-px-accent-soft) 0%, var(--color-px-surface) 58%);
+    box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-player-passport-tile::before,
+  .px-player-passport-tile::after {
+    @apply pointer-events-none absolute h-2 w-2 border-2 border-px-ink content-[''];
+  }
+
+  .px-player-passport-tile::before {
+    @apply top-[5px] left-[5px] border-r-0 border-b-0;
+  }
+
+  .px-player-passport-tile::after {
+    @apply right-[5px] bottom-[5px] border-t-0 border-l-0;
+  }
+
+  .px-player-passport-tile-label {
+    @apply text-[11px] font-bold leading-tight text-px-muted;
+  }
+
+  .px-player-passport-tile-rank {
+    @apply mt-1 font-pixel leading-none tracking-wide text-px-accent;
+    font-size: clamp(1.125rem, 3.2vw, 1.375rem);
+    text-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-player-passport-tile-val {
+    @apply mt-0.5 font-mono text-[13px] font-bold text-px-ink;
+  }
+
+  .px-player-passport-tile-stack {
+    container-type: inline-size;
+    container-name: passport-stack;
+    @apply flex h-full min-w-0 flex-col gap-1.5;
+  }
+
+  .px-player-passport-tile-stack > .px-player-passport-tile:first-child {
+    @apply shrink-0 grow-0;
+  }
+
+  .px-player-passport-medal-row {
+    @apply grid w-full min-w-0 shrink-0 grow-0 gap-1.5;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .px-player-passport-medal-row--triple {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @container passport-stack (min-width: 17.5rem) {
+    .px-player-passport-medal-row--triple {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @container passport-stack (min-width: 11.5rem) and (max-width: 17.49rem) {
+    .px-player-passport-medal-row--triple {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .px-player-passport-medal-row--triple .px-player-passport-medal:last-child {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .px-player-passport-medal {
+    @apply box-border flex min-w-0 items-center gap-1.5 border-2 border-px-ink bg-px-surface py-1.5 pr-2 pl-1.5;
+    box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-player-passport-medal-rank {
+    @apply flex h-[2.125rem] w-[2.125rem] shrink-0 items-center justify-center border-2 border-px-ink bg-px-ink font-pixel text-[10px] leading-none text-px-surface;
+  }
+
+  .px-player-passport-medal-body {
+    @apply min-w-0 flex-1 leading-tight;
+  }
+
+  .px-player-passport-medal-label {
+    @apply block overflow-hidden text-[10px] font-bold text-ellipsis whitespace-nowrap text-px-muted;
+  }
+
+  .px-player-passport-medal-val {
+    @apply mt-px block font-mono text-[13px] font-bold text-px-ink;
+  }
+
+  .px-player-passport-tile-stack--wr .px-player-passport-medal-row--triple .px-player-passport-medal-label {
+    @apply text-[9px];
+  }
+
+  /** 玩家页：左表右图布局（仅本页） */
+  .px-player-records-split {
+    @apply grid items-start gap-4;
+  }
+
+  @media (min-width: 900px) {
+    .px-player-records-split {
+      grid-template-columns: 1.618fr 1fr;
+    }
   }
 }

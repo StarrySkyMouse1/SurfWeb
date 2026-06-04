@@ -14,6 +14,7 @@ public sealed class MapService(
     IBaseRepository<MapTier> mapTiers,
     IBaseRepository<PlayerTime> playerTimes,
     IBaseRepository<StageTime> stageTimes,
+    IBaseRepository<CpTime> cpTimes,
     IBaseRepository<User> users,
     IQueryCache cache,
     IOptions<SurfWebOptions> options) : IMapService
@@ -57,6 +58,15 @@ public sealed class MapService(
             token => LoadLeaderboardPageAsync(mapName, track, stage, page, pageSize, token),
             ct);
         return (snapshot.Items, snapshot.Total);
+    }
+
+    public Task<MapCheckpointChartDto?> GetCheckpointChartAsync(
+        string mapName, byte track = 0, int limit = 10, CancellationToken ct = default)
+    {
+        limit = Math.Clamp(limit, 1, 10);
+        var ttl = LeaderboardTtl();
+        var key = CacheKeys.MapCheckpoints(mapName, track, limit);
+        return cache.GetOrLoadAsync(key, ttl, token => LoadCheckpointChartAsync(mapName, track, limit, token), ct);
     }
 
     private TimeSpan MapsTtl() =>
@@ -118,6 +128,7 @@ public sealed class MapService(
             wrName = await GetNameAsync(wr.Value.Auth, ct);
 
         var bonusTracks = await GetBonusTrackIdsAsync(mapName, ct);
+        var stages = await GetStageIdsAsync(mapName, ct);
 
         return new MapDetailDto(
             tier.Map,
@@ -128,7 +139,8 @@ public sealed class MapService(
             wr is null ? null : TimeFormatter.Format(wr.Value.Time),
             wrName,
             wr?.Auth,
-            bonusTracks);
+            bonusTracks,
+            stages);
     }
 
     private Task<CachedPageList<LeaderboardEntryDto>> LoadLeaderboardPageAsync(
@@ -226,6 +238,71 @@ public sealed class MapService(
             .Distinct()
             .OrderBy(t => t)
             .ToListAsync(ct);
+
+    private async Task<IReadOnlyList<byte>> GetStageIdsAsync(string mapName, CancellationToken ct) =>
+        await stageTimes
+            .Where(st => st.Map == mapName && st.Track == 0)
+            .Select(st => st.Stage)
+            .Distinct()
+            .OrderBy(s => s)
+            .ToListAsync(ct);
+
+    private async Task<MapCheckpointChartDto?> LoadCheckpointChartAsync(
+        string mapName, byte track, int limit, CancellationToken ct)
+    {
+        var tier = await mapTiers.FirstOrDefaultAsync(m => m.Map == mapName, ct);
+        if (tier is null) return null;
+
+        var top = await GetLeaderboardPlayerTimePageAsync(mapName, track, 0, limit, ct);
+        if (top.Count == 0)
+            return new MapCheckpointChartDto([], []);
+
+        var authIds = top.Select(t => t.Auth).ToList();
+        var names = await GetNamesByAuthIdsAsync(authIds, ct);
+        var cpRows = await cpTimes
+            .Where(cp => cp.Map == mapName && cp.Track == track && authIds.Contains(cp.Auth))
+            .OrderBy(cp => cp.Checkpoint)
+            .ToListAsync(ct);
+
+        var checkpoints = cpRows.Count > 0
+            ? cpRows.Select(cp => cp.Checkpoint).Distinct().OrderBy(c => c).ToList()
+            : await cpTimes
+                .Where(cp => cp.Map == mapName && cp.Track == track)
+                .Select(cp => cp.Checkpoint)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync(ct);
+
+        var maxCp = checkpoints.Count > 0 ? checkpoints[^1] : (byte)0;
+        var labels = checkpoints.Select(cp => FormatCheckpointLabel(cp, maxCp)).ToList();
+
+        var byAuth = cpRows
+            .GroupBy(cp => cp.Auth)
+            .ToDictionary(g => g.Key, g => g.ToDictionary(r => r.Checkpoint, r => r.Time));
+
+        var series = top.Select((entry, index) =>
+        {
+            names.TryGetValue(entry.Auth, out var name);
+            byAuth.TryGetValue(entry.Auth, out var cpByCheckpoint);
+            var aligned = checkpoints.Count == 0
+                ? (IReadOnlyList<float?>)[]
+                : checkpoints
+                    .Select(cp => cpByCheckpoint != null && cpByCheckpoint.TryGetValue(cp, out var sec)
+                        ? (float?)sec
+                        : null)
+                    .ToList();
+            return new MapCheckpointSeriesDto(index + 1, entry.Auth, name, aligned);
+        }).ToList();
+
+        return new MapCheckpointChartDto(labels, series);
+    }
+
+    private static string FormatCheckpointLabel(byte checkpoint, byte maxCheckpoint)
+    {
+        if (checkpoint == 0) return "起点";
+        if (checkpoint == maxCheckpoint) return "终点";
+        return $"CP{checkpoint}";
+    }
 
     private async Task<Dictionary<string, int>> GetCompletionCountsByMapsAsync(
         IReadOnlyList<string> mapNames, CancellationToken ct)

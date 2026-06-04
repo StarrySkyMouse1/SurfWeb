@@ -27,6 +27,9 @@ public static class DependencyInjection
         services.AddScoped<IPlayerService, PlayerService>();
         services.AddScoped<IRankingService, RankingService>();
         services.AddScoped<IRecordService, RecordService>();
+        services.AddScoped<IRealtimeRecentRecordsService, RealtimeRecentRecordsService>();
+        services.AddScoped<ApiLatestRecordsEngine>();
+        services.AddScoped<IApiService, ApiService>();
         services.AddScoped<IUserService, UserService>();
     }
 }

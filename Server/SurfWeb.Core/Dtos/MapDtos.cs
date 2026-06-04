@@ -17,7 +17,8 @@ public sealed record MapDetailDto(
     string? WorldRecordTimeFormatted,
     string? WorldRecordPlayer,
     int? WorldRecordAuth,
-    IReadOnlyList<byte> BonusTracks);
+    IReadOnlyList<byte> BonusTracks,
+    IReadOnlyList<byte> Stages);
 
 public sealed record LeaderboardEntryDto(
     int Rank,
@@ -28,37 +29,6 @@ public sealed record LeaderboardEntryDto(
     float? Sync,
     int? Jumps,
     DateTimeOffset? Date);
-
-public sealed record PlayerSummaryDto(
-    int Auth,
-    string? Name,
-    float Points,
-    float Playtime,
-    int CompletionCount,
-    int PointsRank,
-    int PlaytimeRank,
-    int CompletionRank);
-
-public sealed record PlayerTimeDto(
-    int Id,
-    string Map,
-    byte Style,
-    byte Track,
-    float Time,
-    string TimeFormatted,
-    float? Sync,
-    DateTimeOffset? Date);
-
-public sealed record PlayerCompletionDto(
-    string Map,
-    int? Tier,
-    float Time,
-    string TimeFormatted,
-    byte Style,
-    float? Sync,
-    DateTimeOffset? Date,
-    float? WorldRecordTime,
-    float? GapFromWr);
 
 public sealed record RankingEntryDto(int Rank, int Auth, string? Name, float Value);
 

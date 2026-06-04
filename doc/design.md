@@ -17,7 +17,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 非目标：
 - 不提供用户登录、后台管理、成绩人工提交。
 - 不直接修改 Shavit 原库表结构。
-- 不在 v1 中实现检查点榜（`cptimes` / `cpwrs`）。
+- 不实现完整检查点排行榜页（`cpwrs` 榜表）；地图详情仅提供主线 **TOP10 检查点差异折线图**（只读 `cptimes`，展示各检查点相对最快差距）。
 
 ---
 
@@ -30,9 +30,10 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 - 前端默认 API 地址：`http://localhost:5240/api/v1`。
 
 当前核心能力：
-- 地图列表、地图详情、排行榜分页。
-- 玩家摘要、玩家成绩、玩家完赛地图。
+- 地图列表、地图详情 v2（主线榜 + 检查点图 + 阶段/奖励双栏）、排行榜分页。
+- 玩家冲浪档案（8 项排名 + 数值；上大卡蓝调渐变 + 下勋章，对齐设计稿 v2 预览）、记录列表（近期 / WR / 未完成 × 主线 / 阶段 / 奖励）与联动图表。
 - 全站排行榜、最新记录。
+- 对外 REST：`GET /api/v1/api/records/latest`（`IApiService` / `ApiLatestRecordsEngine` 直查库，**完成时间游标** + 类型筛选；后续 SignalR 拟复用该逻辑）。
 - 配置接口：样式、地图图床；服务器实时状态（Steam A2S + 后台刷新）。
 
 ---
@@ -47,11 +48,12 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 | `Configurations` | `Server/Configurations/` | `DependencyInjection/*`、CORS、`Middleware`、`Common/ApiResponse`（绑定 `SurfWeb.Core.Options`，无独立 Options 项目内目录） |
 | `Utils` | `Server/Utils/` | 无状态工具与读侧缓存：`TimeFormatter`、`Caching/`（`CacheKeys`、`IQueryCache`、`QueryCache` 等）、服务器地址/地图名解析；`AddSurfWebQueryCache` |
 | `Repositories` | `Server/Repositories/` | `ShavitDbContext`、`IBaseRepository<T>`、`AddSurfWebRepositories` |
-| `Services` | `Server/Services/` | `IServices/*`、`Services/*`、`AddSurfWeb` / `AddSurfWebData` |
+| `Services` | `Server/Services/` | `IServices/*`、`Services/*`（含 `IRealtimeRecentRecordsService`、`IApiService` 直查库）、`AddSurfWeb` / `AddSurfWebData` |
 | `SurfWeb.ServerStatus` | `Server/SurfWeb.ServerStatus/` | `IServices/`、`Models/`、`Services/`、`Steam/`；**不**引用 `Repositories`，Shavit 补充经 `IMapService` / `IUserService` |
+| `SurfWeb.Realtime` | `Server/SurfWeb.Realtime/` | SignalR `RecordsHub`、`RealtimeRecentRecordsPushWorker` |
 | `SurfWeb.Api` | `Server/SurfWeb.Api/` | Controller、组合根、`Program.cs` |
 
-依赖方向：`SurfWeb.Core`（含 Options）← `Utils` ← `Repositories` ← `Services` ← `SurfWeb.ServerStatus` ← `SurfWeb.Api`；`Configurations` 引用 `Core` 负责 Options 绑定与横切中间件。`Program.cs`：`AddSurfWebWebHost` 等横切配置后，`AddSurfWeb`（仓储 + Services）、`AddSurfWebServerStatus`（Steam + 在线状态）。
+依赖方向：`SurfWeb.Core`（含 Options）← `Utils` ← `Repositories` ← `Services` ← `SurfWeb.ServerStatus` / `SurfWeb.Realtime` ← `SurfWeb.Api`；`Configurations` 引用 `Core` 负责 Options 绑定与横切中间件。`Program.cs`：`AddSurfWebWebHost` 等横切配置后，`AddSurfWeb`（仓储 + Services）、`AddSurfWebServerStatus`（Steam + 在线状态）、`AddSurfWebRealtime`（Hub + 实时推送）。
 
 ### 3.2 前端
 
@@ -59,6 +61,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 - 路由：`/`、`/maps`、`/maps/:name`、`/players/:auth`、`/servers`。
 - 兼容旧链接：`/rankings`、`/records` 重定向到首页。
 - **目录约定：** 跨页复用 `Web/src/components/`（`AppHeader`、`PaginationBar`、`MapPreviewImage`、`skeleton/SkeletonBar`）；各页 UI 与骨架内聚在 `views/<feature>/components/`，**统一**通过组件 prop `loading` 在同一 DOM 壳内切换 `SkeletonBar` 占位（不再维护独立 `Skeleton*.vue` 表/卡片副本）。公共仅保留 `SkeletonBar` 原子占位条。
+- **样式约定：** 全站视觉与类名分层见 **§6.1.1**；新 UI **先复用** `Web/src/styles/components/*`，禁止为单页再抄一套 `px-*`。
 
 ### 3.3 文档
 
@@ -70,9 +73,10 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 ## 4. 数据来源与业务语义
 
 当前数据主要来自以下表：
-- `users`：玩家资料、积分、游玩时长。
+- `users`：玩家资料、积分（`points`）、游玩时长。
 - `playertimes`：通关记录，包含 `style`、`track`、`map`、`time`、`date`。
-- `stagetimes`：分段记录，包含 `stage`。
+- `stagetimes`：分段记录，包含 `stage`（阶段榜 `track=0` + `stage`）。
+- `cptimes`：检查点用时（地图详情「检查点差异」折线图；库内为累计秒，前端 tooltip 展示相对差距；非完整 CP 排行榜页）。
 - `maptiers`：地图 tier 与速度信息。
 
 业务约定：
@@ -96,8 +100,15 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 - `GET /maps/{mapName}`
   - 查询地图详情。
-  - 返回主线信息、WR、完赛数、`bonusTracks`。
+  - 返回主线信息、WR、完赛数、`bonusTracks`、`stages`（该图 `stagetimes` 且 `track=0` 的 `stage` 去重升序）。
   - **读缓存：** 按地图名缓存详情（含「不存在」）；TTL 同 `MapsMinutes`，懒刷新。
+
+- `GET /maps/{mapName}/checkpoints`
+  - 主线检查点折线图数据（只读 `cptimes`）。
+  - 查询参数：`track`（默认 `0`）、`limit`（默认 `10`，上限 10）。
+  - 响应 `MapCheckpointChartDto`：`checkpointLabels`（`起点` / `CPn` / `终点`）、`series[]`（`rank`、`auth`、`playerName`、`cumulativeSeconds[]`，`time` 为累计秒）。
+  - `series` **固定为主线榜 TOP `limit`（默认 10，不向后补位）**；无 `cptimes` 的玩家仍返回（`cumulativeSeconds` 全 `null`），图例保留并弱化样式；`rank` 为榜内名次；有数据的玩家缺检查点为 `null`；`checkpointLabels` 取自 TOP 内或全图 `cptimes` 检查点并集。
+  - **读缓存：** `CacheKeys.MapCheckpoints`；TTL 同 `LeaderboardSeconds`。
 
 - `GET /maps/{mapName}/leaderboard`
   - 查询地图排行榜。
@@ -106,30 +117,54 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
   - **读缓存：** 按 `map`/`track`/`stage`/`page`/`pageSize` 缓存整页结果；`SurfWeb:Cache:LeaderboardSeconds`（默认 60）过期，懒刷新。
 
 - `GET /players/{auth}`
-  - 查询玩家摘要。
+  - 冲浪档案摘要：`points`/`playtime` 来自 `users`；`mainCompletionCount`（主线 `track=0` 不重复地图数）、`bonusCompletionCount`（奖励 `track>0` 不重复地图+赛道数）；`wrCount` 为三类 WR 之和，`mainWrCount`/`stageWrCount`/`bonusWrCount` 语义与全站 `GET /rankings?type=wr&wrScope=` 一致（全服最快持有者，非个人 PB）。
+  - 各指标 `*Rank` 为全表计数排名（同分按 `auth` 升序靠前），计数时排除本人以免浮点比较误判。
 
-- `GET /players/{auth}/times`
-  - 查询玩家成绩列表。
-  - 支持 `map`、`page`、`pageSize`。
-  - 默认 `pageSize = 50`。
-
-- `GET /players/{auth}/completions`
-  - 查询玩家完赛地图列表（每图取玩家最佳主线成绩，按最近完赛排序）。
-  - `worldRecordTime` / `gapFromWr`：按地图全服主线最快时间（`track = 0`）计算，非「每玩家一条 WR」。
-  - 默认 `pageSize = 20`。
+- `GET /players/{auth}/records`
+  - 玩家记录分页列表 + 同筛选下图表聚合；`category`（`PlayerRecordCategory`）：`recent` / `wr` / `incomplete`；`scope`（`PlayerRecordScope`）：`main` / `stage` / `bonus`；`page`、`pageSize`（默认 **10**）。
+  - **近期**（`recent`）：该玩家全部成绩条目按 `date` 降序（主线 `playertimes` `track=0`；奖励 `track>0`；阶段 `stagetimes`），非每图去重；每条附带 `worldRecordTime`、`gapFromWr`（相对全服最快之差，秒；与 WR 持平或 ≤0.001s 时 `gapFromWr=0`，供前端显示 `+0.000`）；联动图主柱 **「今年完成次数」**，按自然年 1–12 月统计（UTC）。
+  - **WR**（`wr`）：该玩家为全服最快持有者的条目，按 `date` 降序；联动图主柱标题 **「WR 达成 · 今年」**，按**自然年** 1–12 月统计达成次数（UTC）。
+  - **未完成**（`incomplete`）：与 `maptiers` 交集；主线为无 `track=0` 成绩的地图；奖励为全站存在该奖励赛道但玩家无成绩；阶段为全站存在该 `(map,track,stage)` 但玩家无成绩；排序 Tier 升序 → 地图名（→ 赛道/阶段）字母序；可选查询参数 **`tier`**（0–8）；不传或前端选 **「全部」** 时不按 Tier 筛选（默认 **全部**），图表与列表同步；**全图库完成率** 柱图在主线/奖励/阶段下均统计当前范围内的**已完成 vs 未完成**（非仅未完成一项）。
+  - 响应 `data`：`items`（`PlayerRecordDto`：`map`、`tier`、`track`、`stage`、`time`/`timeFormatted`、`sync`、`date`、`worldRecordTime`/`gapFromWr`（仅 `recent`；持 WR 时 `gapFromWr=0`）、`status`）+ `charts`（`PlayerChartsDto`：双块柱图 `primaryBars`/`tierBars`、标题与页脚文案）；`tierBars` 固定 **T0–T8** 共 9 档（无数据为 0），与地图页 Tier 范围一致；`meta.total` 为列表总条数。
 
 - `GET /rankings`
   - 查询全站排行榜。
-  - 支持 `type`（`RankingType` 枚举，查询参数仍为小写字符串，大小写不敏感）：`points`（积分）、`completions`（有成绩的不重复地图/赛道数）、`playtime`（在线时长，秒）、`wr`（持有 WR 条目的数量排行）；非法值返回 400；`page`、`pageSize`。
+  - 支持 `type`（`RankingType` 枚举，查询参数仍为小写字符串，大小写不敏感）：`points`（积分，来自 `users.points`）、`completions`（有成绩的不重复地图/赛道数）、`playtime`（在线时长，秒）、`wr`（持有 WR 条目的数量排行）；非法值返回 400；`page`、`pageSize`。
   - `type=completions` 时可选 `completionScope`（`TrackRankingScope` 枚举，大小写不敏感，缺省 `main`）：`main`（主线 `track=0` 每图计 1）、`bonus`（奖励 `track>0` 每图每赛道计 1）；两套独立缓存 key。
   - `type=wr` 时可选 `wrScope`（`WrRankingScope` 枚举，大小写不敏感，缺省 `main`）：`main`（主线 `track=0` 每图一条 WR）、`bonus`（奖励赛道 `track>0` 每图每赛道一条 WR）、`stage`（`stagetimes` 每图每赛道每阶段一条 WR）；三套独立缓存 key。
   - **读缓存：** `RankingService` 按 `type`（完成/WR 另按 scope）缓存全量 Top 100（`SiteLimits.MaxRankingsTotal`），`page`/`pageSize` 在内存切片；过期由 `SurfWeb:Cache:RankingsRefreshMinutes` 控制，**过期后下一次用户请求**触发重新查库（非后台定时任务）。
 
 - `GET /records/recent`
-  - 查询最新记录（仅 `playertimes`；不含 `stagetimes`）。缓存快照 `RecentRecordsSnapshot` 预计算四套列表，各最多 100 条、按**该条成绩的完成时间**降序：「全部」「主线」（`track=0`）、「奖励」（`track>0`）、「WR」（玩家打破 WR 的条目）。构建时在最近批次内按 `(玩家, 地图, track)` 去重，保留该玩家在该地图赛道上的**个人最快**一条（非全服地图最快），再取 Top 100。
+  - 查询最新记录（`playertimes` + `stagetimes`）。缓存快照 `RecentRecordsSnapshot` 预计算七套列表，各最多 100 条、按**该条成绩的完成时间**降序：「全部」（主线 + 奖励 + 阶段）、「主线」（`track=0`）、「阶段」（`stagetimes`）、「奖励」（`track>0`）以及 WR 的主线 / 阶段 / 奖励三类。构建时各范围独立读取最近批次，避免主线、奖励、阶段互相挤占；玩家成绩按 `(玩家, 地图, track)` 去重，阶段成绩按 `(玩家, 地图, track, stage)` 去重，保留该玩家在对应赛道 / 阶段上的**个人最快**一条（非全服地图最快），再取 Top 100。
   - 支持 `page`、`pageSize`，兼容 `limit`；`filter`（`RecentRecordFilter` 枚举，大小写不敏感，缺省全部）：`all` / `main` / `stage`（`stagetimes`）/ `bonus` / `wr`；`filter=wr` 时可选 `wrScope`（`WrRankingScope`）：`main` / `stage` / `bonus`；非法值 400；各列表独立 Top 100、按完成时间降序，内存分页。
-  - 响应项含 `tier`（地图难度，来自 `MapTier`）；`stage` 字段保留于 DTO 但首页不返回阶段条目。
-  - **读缓存：** 单 key `surfweb:records:recent`；过期由 `SurfWeb:Cache:RecentRefreshMinutes` 控制，懒刷新。
+  - 响应项含 `tier`（地图难度，来自 `MapTier`）；阶段记录返回 `stage` 字段，首页最新记录可按阶段筛选。
+  - **读缓存：** 单 key `surfweb:records:recent`；过期由 `SurfWeb:Cache:RecentRefreshMinutes` 控制，懒刷新。实时推送见 §5.1.1（**直查库**，不走该缓存）。
+
+#### 5.1.1 SignalR：最新记录订阅（对外集成）
+
+- **实现：** 查询在 `Services`（`IRealtimeRecentRecordsService` / `RealtimeRecentRecordsService` 直查 Shavit）；推送在 `SurfWeb.Realtime`（`RealtimeRecentRecordsPushWorker` 按 `Id` 轮询并广播）。
+- **Hub 路径：** `/hubs/records`（WebSocket；协商 URL 为 `{origin}/hubs/records`）。
+- **配置：** `SurfWeb:Cache:RecentPushSeconds`（默认 **30**）；为 **0** 时禁用轮询与推送（REST 仍可用）。
+- **筛选 `scope`：** Hub 入参为 `RealtimeRecentRecordScope` 枚举（`All` / `Main` / `Bonus` / `Stage`）；`All` 为全部新完成（主线+奖励+阶段），`Main` 为 `track=0`，`Bonus` 为 `track>0`，`Stage` 为 `stagetimes`。
+- **客户端流程：**
+  1. 建立连接（.NET：`Microsoft.AspNetCore.SignalR.Client`；其他语言用对应 SignalR 客户端）。
+  2. **`SubscribeRecent(scope?, snapshotPageSize?)`**（`scope` 传枚举名或整型）→ 加入组 `recent:{scope}`，并收 **`RecentSnapshot`**（`RealtimeRecentRecordsSnapshotMessage`）。
+  3. 后台发现**新插入**的完成记录（按表 `Id` 游标，启动时不推历史）→ 向相关组广播 **`RecordsUpdated`**（`RealtimeRecentRecordsUpdatedMessage`，`added[]`）。
+  4. **`UnsubscribeRecent(scope?)`** 退订。
+- **推送项字段（`RealtimeRecentRecordDto`）：** 除地图/玩家/时间等外，含 `firstPlaceTime` / `gapFromFirst`（相对该时刻全服最快）、`personalBestTime` / `gapFromPersonalBest`（当前成绩相对该玩家此图/赛道/阶段在**该条完成时刻**的个人最快，含本条；持 PB 或差距 ≤0.001s 时为 **0**，更慢完赛时为正数）；持 WR 时 `gapFromFirst` 为 **0**。
+- **与 REST：** REST `GET /records/recent` 仍为缓存读侧；SignalR 为实时集成专用，断线重连后应重新 `SubscribeRecent`。
+- **开发测试（Swagger）：** `POST /api/v1/realtime/push/trigger`（仅 `Development`）手动执行一轮查库+推送；需另有客户端已 `SubscribeRecent` 才能看到 `RecordsUpdated`。
+
+#### 5.1.2 对外 REST：最新记录（时间游标）
+
+- `GET /api/v1/api/records/latest`（`ApiController` + `IApiService` / `ApiLatestRecordsEngine`，**直查库**，无 IMemoryCache；**SignalR 推送后续拟复用本逻辑**）。
+- 查询参数：
+  - `type`（可选，`RealtimeRecentRecordScope`，大小写不敏感，缺省 **All**）：`all` / `main`（`track=0`）/ `bonus`（`track>0`）/ `stage`（`stagetimes`）。
+  - `after`（可选，ISO 8601）：仅返回完成时间**严格晚于**该时刻的记录，按 `recordedAt` **升序**（同秒按 `id` 升序），最多 `limit` 条；省略则返回最新若干条，按 `recordedAt` **降序**（第一条为最新）。
+  - `limit`（可选，默认 **100**，最大 100）。
+- 响应 `data`：`ApiLatestRecordDto[]` — `playerName`、`map`、`tier`、`type`、`track`、`stage`、`typeLabel`、`recordedAt`、`gapFromWr`（**不含** `gapFromMe`：Shavit `playertimes` / `stagetimes` 对同一玩家+图+赛道/阶段仅保留一条，无法计算有意义的个人差距）。
+- `gapFromWr` 按该条记录 `recordedAt` 的历史状态计算：只纳入完成时间早于该记录的成绩，完成时间相同则仅纳入 `Id <= 当前 Id` 的成绩；因此后续产生的新 WR 不会改变历史推送记录的差距。输出为带符号三位小数（如 `+1.234`）；持 WR 或差距 ≤0.001s 时为 `+0.000`。
+- 与 `GET /records/recent`（站点缓存、PB 去重）并列；当前 SignalR 仍用 `PollNewSinceAsync`（`Id` 向上增量），待后续改为复用本 API 查询。
 
 - `GET /config/map-images`
 - `GET /config/servers`（静态配置摘要，不含在线玩家；前端服务器页使用 `GET /servers` 实时接口）
@@ -163,7 +198,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 - 实现：`IMemoryCache` + `IQueryCache` / `QueryCache`（`Utils/Caching`），经 `AddSurfWebQueryCache` 注册（`AddSurfWeb` → `AddSurfWebServices` 内调用）。
 - **全量快照（Top 100）：** `surfweb:rankings:*`、`surfweb:records:recent`；`RankingsRefreshMinutes` / `RecentRefreshMinutes`（默认 1 分钟）；内存分页。
 - **按查询参数缓存（地图）：** `surfweb:maps:list:*`、`surfweb:maps:detail:*`、`surfweb:maps:lb:*`；`MapsMinutes`（默认 5 分钟）、`LeaderboardSeconds`（默认 60 秒）。
-- **刷新策略：** 均为绝对过期 + **过期后下一次用户请求**才重新查库（无后台定时刷新）。
+- **刷新策略：** 地图/排行榜等为绝对过期 + **过期后下一次用户请求**才重新查库；SignalR 推送由 `SurfWeb.Realtime` 按 `RecentPushSeconds` **直查库**，不更新 `surfweb:records:recent`。
 - 并发：同 key 过期时 `SemaphoreSlim` 单飞，避免击穿。
 
 ---
@@ -172,30 +207,63 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 ### 6.1 视觉方向
 
-采用 **像素简约**（由方向 C 演进，预览见 `docs/design-previews/ui-pixel-minimal.html`）。
+采用 **像素简约**（由方向 C 演进，预览见 `docs/design-previews/ui-pixel-minimal.html`；玩家页 `ui-player-profile-v2.html`、地图详情 `ui-map-detail-v2.html`）。
 
 主要特征：
-- 暖纸色底 `#f3f1eb` + 可选 8px 淡网格；墨黑 `#121212` 2px 描边。
+- 暖纸色底 `#f3f1eb` + 可选 8px 淡网格；墨黑 `#121212` **外框** 2px 实线描边；**内部分隔** 1px 浅色线（不与外框同粗同色，见 v2 稿 `--px-divider`）。
 - 阶梯硬阴影（4px / 2px），无模糊投影。
 - 字体：**IBM Plex Sans**（中文正文）、**Silkscreen**（导航短码、区块代号、名次、Tier 芯片）、**JetBrains Mono**（时间、连接串、地图名）。
 - 强调色 `#3d5afe`（第 1 名、主按钮、Logo 块）；表头反色、行 hover 填黑与方向 C 一致。
 - 顶栏品牌：**地满滑翔** + 英文点缀 **SURF RECORD**；Logo 为 `Web/public/brand-icon.png`；导航为**中文 + 英文码**。站点 `favicon` 同图。
 - 页内区块同为**中文主标题 + 英文像素小字**（如「最新记录」旁 RECENT）；表头等内容使用中文。
 
-主题与布局样式：入口 `Web/src/style.css`（`@import "tailwindcss"` 后按模块引入 `Web/src/styles/`）；`theme.css` 设计令牌、`base.css` 页面底、`components/pixel-ui.css` 面板/按钮/芯片、`components/table.css` 表格、`components/pagination.css` 分页、`pages/home.css` 首页双栏、`pages/player.css` 玩家完赛表、`pages/server.css` 服务器页、`tier.css` Tier 色类；固定表格每页 10 行在相关 View/组件内写死。前端工具：`Web/src/utils/format.ts`（时间/成绩/WR 格式化）、`Web/src/utils/display.ts`（图床 URL、Tier 色类、骨架行数、Steam 进服）。
+样式入口：`Web/src/style.css`（Tailwind + `Web/src/styles/` 模块）。设计令牌与分层复用见 **§6.1.1**。前端工具：`Web/src/utils/format.ts`、`Web/src/utils/display.ts`、`Web/src/utils/playerCharts.ts`（玩家柱图）。
+
+#### 6.1.1 样式分层与复用（强制）
+
+**原则：与全站统一，不为加而加。** 新页面/区块实现时，先对齐已有页（尤其地图详情 `/maps/:name` 排行榜表），再写 CSS；仅当共享层无法表达且确属单页独有布局时，才写入 `pages/<page>.css`。
+
+| 层级 | 路径 | 放什么 | 不放什么 |
+|------|------|--------|----------|
+| 令牌 | `styles/theme.css` | 色板、字体变量 | 组件布局 |
+| 基底 | `styles/base.css` | `body` 纸色底、网格 | 业务块 |
+| **共享组件** | `styles/components/pixel-ui.css` | `px-panel`、`px-btn`、`px-chip`、`px-table-head`、`px-filter-main` / `px-filter-scope`、`px-filter-chip-row` 等 | 单页 bento |
+| | `styles/components/table.css` | `px-table-row`、`px-table-data-cell`、`px-table-cell-content`、`px-paged-table-wrap`、`px-table-map-link` | 首页最新记录 mask 等特殊列 |
+| | `styles/components/chart.css` | `px-chart-panel`、柱图条 | 玩家档案 |
+| | `styles/components/pagination.css` | 分页条 | — |
+| | `styles/tier.css` | Tier 色类 | — |
+| **页专属** | `styles/pages/home.css` | 首页双栏、最新记录缩略图渐变 | 通用表行 |
+| | `styles/pages/player.css` | 冲浪档案 `px-player-passport-*`、`px-player-records-split` | 表/筛选/柱图（应用共享类） |
+| | `styles/pages/server.css` | 服务器页布局 | 通用面板 |
+
+**表格（分页列表）统一约定：**
+
+- 外壳：`px-panel overflow-hidden` + 内层 `overflow-x-auto` + 需要固定行数时加 `px-paged-table-wrap`（10 行，`pageSize` 与组件一致）。
+- 表头/行/悬停：`px-table-head`、`px-table-head-cell`、`px-table-row` / `px-table-row-empty`、`px-table-data-cell` + `px-table-cell-content`（与 `LeaderboardTable` 相同 DOM，禁止在 `player.css` 再定义一套行色）。
+- 地图名列（带缩略图）：`px-table-map-link` + `MapPreviewImage` `variant="thumb"`；缩略图左实右透明 mask 在 `table.css`（`.px-table-map-link` / `.px-home-recent-map-link` 共用，非压暗）。
+
+**新增 CSS 前自检：**
+
+1. `pixel-ui.css` / `table.css` / `chart.css` 是否已有同类 `px-*`？
+2. 能否只改 Vue 类名指向已有类（例如玩家筛选用 `px-filter-main-btn`，而非 `px-player-filter-*`）？
+3. 若与地图详情表一致，是否已对照 `LeaderboardTable.vue`？
+4. 仅冲浪档案 bento、玩家页 φ 分栏等**无第二处复用**的块，才进 `pages/player.css`。
+
+**禁止：** 为单页复制 `px-table-row` 悬停、面板描边、筛选按钮尺寸；禁止新建 `pages/players.css` 或与 `components/*` 职责重叠的文件。
 
 ### 6.2 页面
 
 - 首页：排行榜、最新记录；双栏 `items-start`（不按较高栏拉伸，避免表与分页之间留白），网格子项与 `.px-home-list-table-wrap > table` 均为 `w-full` + `table-fixed`，表体固定 10 行（`h-14` / `--px-home-table-block-h`），表格区高度随表头+行数自适应（`max-height` 上限 10 行），无固定留白；表格区 `overflow` 裁剪且不显示滚动条，行内容 `overflow-hidden` 不撑高页面；横向裁剪 `overflow-x-hidden`。`HomeRankingTable` / `HomeRecentTable` 在 `loading` 时于**同一** `colgroup`/表头下渲染 `SkeletonBar` 占位（末页行数由 `skeletonRowsForPage` 与数据态一致），底部分页始终为真实 `PaginationBar`。**最新记录**栏标题右侧为 `RecentRecordFilter`：浏览分栏芯片（`完成·全部` / `完成·主线` / `完成·阶段` / `完成·奖励`）+ WR 分栏芯片（`WR·主线` / `WR·阶段` / `WR·奖励`），切换时重置第 1 页；`filter` + 可选 `wrScope` 请求 `/records/recent`（阶段来自 `stagetimes`，WR 分范围与排行语义一致）。排行栏标题右侧 `RankingFilter`：积分 / 时长 + **完成**、**WR** 分栏芯片（左 `完成·主线` / `WR·主线` 等，右 ▼ 弹出范围；完成仅主线/奖励，WR 含主线/阶段/奖励）；`type=completions&completionScope=` / `type=wr&wrScope=` 请求 `/rankings`，切换时重置第 1 页；表头第三列随类型显示「积分」「完成」「时长」「WR」（时长列用 `formatPlaytime`：`X天 X小时`，不显示分/秒）。列宽：排行「名次 3rem / 玩家 / 数值列 7rem（时长筛选时为 11rem，`w-44`）」；最新记录「地图 42%（行高内左贴边缩略图 `MapPreviewImage` variant=`thumb`（`mask-image` 左实右透明渐变）；地图名单独占一行 `truncate`；第二行：左 `px-chip` Tier、右赛道类型小字（主线/Bn/阶段N，与 Tier 垂直居中）/ 玩家 / 时间 10rem」；**窄屏（≤640px）** 隐藏地图缩略图。
 - 服务器页（`/servers`）：`ServerInfoPanel` 在 `loading` 时于同一面板壳内渲染单条服务器占位（地图框 + 玩家列表 + 加入按钮）；顶栏为当前地图名 + Tier + 在线/离线；`GET /servers` 每 30s 轮询。
 - 地图页：`MapCard` 支持 `loading`，首屏/加载更多在同一网格内渲染占位卡片（与真实卡片同 DOM 结构）；WR 行 `min-h-4` 防高度跳动。
-- 地图详情页：`MapDetailHeader`、`MapDetailTabs`、`LeaderboardTable` 均 `loading` 同壳切换；首次进入头图/Tab/表一并占位；Tab 预留「主线 + 最多 6 个 Bonus」。
-- 玩家页：`PlayerProfileCard`、`PlayerCompletionsTable` 同壳 `loading`；完赛表 `table-fixed` + `colgroup`（地图 36% 含左贴边 `MapPreviewImage` thumb、Tier `px-chip`+`tierChipColorClass` 同 `MapCard` / 时间 / 同步 / 日期），`mapImageConfig` 来自 `useMapImageConfig`；末页行数由 `skeletonRowsForPage` 与数据态一致。
+- 地图详情页（`/maps/:name`）：对齐视觉稿 `docs/design-previews/ui-map-detail-v2.html`。**已实现：** `MapDetailHeader` → `MapDetailCategoryTabs`（**主线** / **阶段·奖励**）→ **主线**：`MapCheckpointChartPanel`（ECharts 5，`GET .../checkpoints`）+ `MapLeaderboardCard`（`track=0`，φ 双栏 `pages/map-detail.css`）→ **阶段·奖励**：`MapDetailStageBonusPanel` 双列（`≥1280px`）；表格外 `px-filter-scope-btn` 按 `detail.stages` / `detail.bonusTracks` 动态生成（`S{n}`、`b{n}`，无「全部」，默认第一项）；各榜 `GET .../leaderboard`（阶段 `track=0&stage=`，奖励 `track=`），`pageSize=10`，`px-paged-table-wrap` 固定 10 行；时间列 `+X.XXX` 由前端相对榜一 `formatTimeGap`；**阶段记录** / **奖励记录** 两卡始终并排展示；无 `stages` / `bonusTracks` 时不显示范围小 Tab，但保留 `px-map-record-toolbar` 占位使两列表头顶对齐；表体为空（固定 10 行 + 分页「共 0 条」）。旧 `MapDetailTabs`（主线+Bonus 单行）已替换。
+- 玩家页（`/players/:auth`）：视觉稿 `docs/design-previews/ui-player-profile-v2.html`。**档案区**（仅 `pages/player.css`）：`PlayerPassportCard` 冲浪档案 bento、顶栏纯白（`bg-px-surface`）+ Mono ID、水印 `auth`、上大卡渐变与 L 角标、下勋章与 WR 列容器查询。**记录区**（复用 §6.1.1 共享表/筛选/柱图，对齐地图详情榜）：`PlayerRecordFilters`（`px-filter-main` / `px-filter-scope`；**未完成**为首页同款 `FilterSplitChip`，下拉 **T0–T8**，请求 `tier=`）+ `PlayerRecordsTable`（`px-panel`、`px-paged-table-wrap`、`px-table-*`、`px-table-map-link`）+ `PlayerChartsPanel`（`px-chart-panel`）+ `PaginationBar attached`；`GET /players/{auth}/records`，切换筛选或分页重置第 1 页；**近期** Tab 时间列在 `timeFormatted` 后以 `formatTimeGap` 显示与全服 WR 差距（与首页最新记录一致，`+X.XXX` / WR 为 `+0.000`）；**未完成**列表无「状态」列（已选未完成 Tab，文案冗余）；奖励/近期/WR 的奖励范围列表列为「地图 | Tier | 赛道」（Tier 在赛道前）；阶段范围为「地图 | Tier | 阶段」（Tier 在阶段前，与奖励一致）；**近期 / WR / 未完成** 共用同一套 `PlayerRecordsTable` 与 `px-table-*`（黑表头、地图缩略图列、行 hover、列宽）；未完成仅列集合不同，无单独灰显样式；`mapImageConfig` + 同壳 `SkeletonBar`。
 
 ### 6.3 前端运行约定
 
+- **样式复用：** 遵守 **§6.1.1**；改玩家记录表/筛选/柱图时优先改 `components/*.css` 或对齐 `LeaderboardTable`，不要扩写 `pages/player.css`。
 - **骨架屏约定：** 各业务组件 `loading` 时在原位置插入 `SkeletonBar`（或缩略图方框），禁止再为同一块 UI 单独复制一份 `SkeletonXxx.vue` 表/卡；改布局只改业务组件一处。
-- **组件路径：** `views/home/components/`（`HomeRankingTable`、`HomeRecentTable`、`RankingFilter`、`FilterSplitChip`（完成/WR/最新记录分栏芯片 + 范围气泡）、`RecentRecordFilter`）、`ChipFilter` / 筛选条共用 `.px-filter-chip-row`（同行垂直居中，选中无 `translate` 避免高低不齐）、`views/maps/components/`（`MapCard`、`TierFilter`）、`views/map-detail/components/`（`MapDetailHeader`、`MapDetailTabs`、`LeaderboardTable`）、`views/players/components/`（`PlayerProfileCard`、`PlayerCompletionsTable`）、`views/servers/components/`（`ServerInfoPanel`）。
+- **组件路径：** `views/home/components/`（`HomeRankingTable`、`HomeRecentTable`、`RankingFilter`、`FilterSplitChip`（完成/WR/最新记录分栏芯片 + 范围气泡）、`RecentRecordFilter`）、`ChipFilter` / 筛选条共用 `.px-filter-chip-row`（同行垂直居中，选中无 `translate` 避免高低不齐）、`views/maps/components/`（`MapCard`、`TierFilter`）、`views/map-detail/components/`（`MapDetailHeader`、`MapDetailCategoryTabs`、`MapDetailMainPanel`、`MapDetailStageBonusPanel`、`MapCheckpointChart`、`MapLeaderboardCard`、`LeaderboardTable`）、`views/players/components/`（`PlayerPassportCard`、`PlayerRecordFilters`、`PlayerRecordsTable`、`PlayerChartsPanel`）、`views/servers/components/`（`ServerInfoPanel`）。地图详情样式：`styles/pages/map-detail.css`。
 - **单页应用（SPA）：** `vue-router` + `createWebHistory()`，导航统一用 `RouterLink`，仅 `joinServer` 使用 `steam://` 外链；`App.vue` 内 `RouterView` 带淡入淡出过渡；`scrollBehavior` 切换路由时平滑滚到顶部（浏览器后退恢复原滚动位置）。
 - 全局布局：`App.vue` 使用 `min-h-screen` + `flex-col`，`main` 占满剩余高度，页脚 `border-t` 在内容较少时仍贴齐视口底部。
 - `Web/.env.development` 默认：`VITE_API_BASE_URL=http://localhost:5240/api/v1`
@@ -305,7 +373,7 @@ HTTP 请求
 ## 10. 后续演进方向
 
 计划中的后续工作：
-- 玩家页等其余读接口按需接入 `IQueryCache`。
+- 玩家页 `GET /players/*` 按需接入 `IQueryCache`（当前直查库）。
 - 继续打磨移动端体验与空状态。
 - 已完成：`Services` 仅 Shavit 查库（`IServices`/`Services`）；Steam/在线状态迁至 `SurfWeb.ServerStatus`。
 

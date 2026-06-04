@@ -52,7 +52,7 @@
   }
 
   .px-chip {
-    @apply border-2 border-px-ink bg-px-surface font-pixel text-[10px] leading-none;
+    @apply inline-block shrink-0 border-2 border-px-ink bg-px-surface font-pixel text-[10px] leading-none;
     box-shadow: 2px 2px 0 var(--color-px-ink);
   }
 
@@ -118,6 +118,58 @@
   .px-filter-popover-item-active {
     @apply border-px-ink bg-px-ink text-px-surface;
     box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  /** 玩家页等：大/小 Tab 筛选（与 design-previews 一致） */
+  .px-filter-main {
+    @apply mb-1.5 flex flex-wrap items-center gap-2;
+  }
+
+  /** 玩家页「未完成」分栏芯片：与 px-filter-main-btn 同宽同高同字号 */
+  .px-filter-main-split .px-wr-split-chip {
+    @apply box-border h-[2.125rem] w-[5.75rem] min-w-[5.75rem] max-w-[5.75rem] text-xs font-bold leading-none;
+    font-family: inherit;
+  }
+
+  .px-filter-main-split .px-wr-split-chip-active {
+    @apply translate-x-0.5 translate-y-0.5;
+  }
+
+  .px-filter-main-split .px-wr-split-chip-part {
+    @apply text-xs font-bold leading-none;
+    font-family: inherit;
+  }
+
+  .px-filter-main-split .px-wr-split-chip-left {
+    @apply min-w-0 flex-1 truncate px-1.5 py-1.5 text-center;
+  }
+
+  .px-filter-main-split .px-wr-split-chip-right {
+    @apply w-5 shrink-0 px-0 py-1.5;
+  }
+
+  .px-filter-main-btn {
+    @apply box-border flex h-[2.125rem] w-[5.75rem] min-w-[5.75rem] cursor-pointer items-center justify-center border-2 border-px-ink bg-px-surface px-2.5 text-center text-xs font-bold leading-none whitespace-nowrap;
+    box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-filter-main-btn[aria-selected='true'] {
+    @apply translate-x-0.5 translate-y-0.5 bg-px-ink text-px-paper;
+    box-shadow: none;
+  }
+
+  .px-filter-scope {
+    @apply mb-4 flex flex-wrap gap-1.5;
+  }
+
+  .px-filter-scope-btn {
+    @apply box-border w-[3.25rem] min-w-[3.25rem] cursor-pointer border-2 border-px-ink bg-px-surface px-2 py-0.5 text-center text-[10px] font-bold whitespace-nowrap;
+    box-shadow: 2px 2px 0 var(--color-px-ink);
+  }
+
+  .px-filter-scope-btn[aria-selected='true'] {
+    @apply translate-x-px translate-y-px bg-px-ink text-px-paper;
+    box-shadow: none;
   }
 
   .px-input {

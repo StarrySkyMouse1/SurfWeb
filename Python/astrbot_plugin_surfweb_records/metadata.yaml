@@ -1,0 +1,7 @@
+name: astrbot_plugin_surfweb_records
+display_name: SurfWeb 成绩推送
+short_desc: SignalR 订阅最新成绩并渲染成图片推送
+desc: 订阅 SurfWeb RecordsHub 实时成绩推送，用 WeasyPrint 渲染为图片并推送到已绑定会话
+author: SurfWeb
+version: 0.1.0
+repo: ""

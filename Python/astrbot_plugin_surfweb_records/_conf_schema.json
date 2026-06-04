@@ -1,0 +1,39 @@
+{
+  "hub_url": {
+    "description": "SurfWeb SignalR Hub 地址",
+    "type": "string",
+    "hint": "本机 AstrBot 用 http://127.0.0.1:5240/hubs/records；Docker 访问宿主机 SurfWeb 用 http://host.docker.internal:5240/hubs/records",
+    "default": "http://127.0.0.1:5240/hubs/records"
+  },
+  "scope": {
+    "description": "订阅范围",
+    "type": "string",
+    "options": ["All", "Main", "Bonus", "Stage"],
+    "default": "All"
+  },
+  "snapshot_page_size": {
+    "description": "SubscribeRecent 首屏条数（1-50）",
+    "type": "int",
+    "default": 10
+  },
+  "push_targets": {
+    "description": "推送目标 unified_msg_origin 列表（可用 /surfweb bind 添加）",
+    "type": "list",
+    "default": []
+  },
+  "notify_on_snapshot": {
+    "description": "连接后收到 RecentSnapshot 时是否发图",
+    "type": "bool",
+    "default": false
+  },
+  "notify_on_update": {
+    "description": "收到 RecordsUpdated 时是否发图",
+    "type": "bool",
+    "default": true
+  },
+  "max_records_per_image": {
+    "description": "单张图片最多展示几条记录",
+    "type": "int",
+    "default": 8
+  }
+}

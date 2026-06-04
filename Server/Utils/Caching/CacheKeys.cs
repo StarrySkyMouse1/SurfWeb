@@ -55,6 +55,9 @@ public static class CacheKeys
         int pageSize) =>
         $"surfweb:maps:lb:{mapName.Trim().ToLowerInvariant()}:{track}:{stage?.ToString() ?? "main"}:{page}:{pageSize}";
 
+    public static string MapCheckpoints(string mapName, byte track, int limit) =>
+        $"surfweb:maps:cp:{mapName.Trim().ToLowerInvariant()}:{track}:{limit}";
+
     private static string NormalizeSearch(string? search) =>
         string.IsNullOrWhiteSpace(search) ? string.Empty : search.Trim().ToLowerInvariant();
 }

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    @page { size: 720px {{ page_height }}; margin: 0; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px 22px 24px;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(145deg, #0b1220 0%, #132238 55%, #0d1a2e 100%);
+      color: #e8eef7;
+      width: 720px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 14px;
+      border-bottom: 1px solid rgba(120, 170, 255, 0.25);
+      padding-bottom: 10px;
+    }
+    .title { font-size: 22px; font-weight: 700; letter-spacing: 0.02em; }
+    .subtitle { font-size: 12px; color: #8fa8c8; margin-top: 4px; }
+    .badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #7dd3fc;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left;
+      color: #93a8c3;
+      font-weight: 600;
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    td { padding: 9px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .player { font-weight: 600; color: #f1f5f9; }
+    .map { color: #cbd5e1; font-size: 12px; margin-top: 2px; }
+    .time { font-family: Consolas, "Courier New", monospace; color: #38bdf8; font-weight: 700; }
+    .meta { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+    .gap-wr { color: #4ade80; }
+    .gap-slow { color: #fbbf24; }
+    .empty { text-align: center; padding: 28px; color: #64748b; }
+    .footer { margin-top: 12px; font-size: 10px; color: #64748b; text-align: right; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="title">{{ title }}</div>
+      <div class="subtitle">{{ subtitle }}</div>
+    </div>
+    <span class="badge">{{ scope_label }}</span>
+  </div>
+
+  {% if records %}
+  <table>
+    <thead>
+      <tr>
+        <th style="width:28%">玩家 / 地图</th>
+        <th style="width:18%">成绩</th>
+        <th style="width:22%">与 WR</th>
+        <th style="width:22%">与 PB</th>
+        <th style="width:10%">模式</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td>
+          <div class="player">{{ r.player_name }}</div>
+          <div class="map">{{ r.map }}</div>
+        </td>
+        <td>
+          <div class="time">{{ r.time_formatted }}</div>
+          {% if r.tier %}<div class="meta">T{{ r.tier }}</div>{% endif %}
+        </td>
+        <td>
+          {% if r.gap_from_first is not none %}
+          <div class="{{ 'gap-wr' if r.gap_from_first <= 0.001 else 'gap-slow' }}">
+            {% if r.gap_from_first <= 0.001 %}WR{% else %}+{{ r.gap_from_first_fmt }}s{% endif %}
+          </div>
+          <div class="meta">WR {{ r.first_place_time_formatted or '—' }}</div>
+          {% else %}<div class="meta">—</div>{% endif %}
+        </td>
+        <td>
+          {% if r.gap_from_personal_best is not none %}
+          <div class="{{ 'gap-wr' if r.gap_from_personal_best <= 0.001 else 'gap-slow' }}">
+            {% if r.gap_from_personal_best <= 0.001 %}PB{% else %}+{{ r.gap_from_personal_best_fmt }}s{% endif %}
+          </div>
+          <div class="meta">PB {{ r.personal_best_time_formatted or '—' }}</div>
+          {% else %}<div class="meta">—</div>{% endif %}
+        </td>
+        <td><div class="meta">{{ r.mode_label }}</div></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">暂无记录</div>
+  {% endif %}
+
+  <div class="footer">SurfWeb · {{ revision }}</div>
+</body>
+</html>

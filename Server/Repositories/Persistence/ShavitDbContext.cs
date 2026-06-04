@@ -20,6 +20,7 @@ public sealed class ShavitDbContext : DbContext
     public DbSet<MapTier> MapTiers => Set<MapTier>();
     public DbSet<PlayerTime> PlayerTimes => Set<PlayerTime>();
     public DbSet<StageTime> StageTimes => Set<StageTime>();
+    public DbSet<CpTime> CpTimes => Set<CpTime>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -53,6 +54,15 @@ public sealed class ShavitDbContext : DbContext
             e.Property(x => x.Map).HasMaxLength(255);
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.Auth).HasPrincipalKey(u => u.Auth);
             e.HasQueryFilter(st => st.Style == _defaultStyleId);
+        });
+
+        modelBuilder.Entity<CpTime>(e =>
+        {
+            e.ToTable("cptimes");
+            e.HasKey(x => new { x.Style, x.Track, x.Auth, x.Map, x.Checkpoint });
+            e.Property(x => x.Map).HasMaxLength(255);
+            e.Property(x => x.StageTime).HasColumnName("stage_time");
+            e.HasQueryFilter(cp => cp.Style == _defaultStyleId);
         });
     }
 

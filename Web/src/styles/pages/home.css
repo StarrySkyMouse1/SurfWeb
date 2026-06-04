@@ -17,24 +17,7 @@
     @apply flex h-14 max-h-14 w-full items-stretch gap-2 overflow-hidden pr-3 pl-0 hover:opacity-90;
   }
 
-  /** 最新记录缩略图：左实右透明（mask 透明度渐变，非压暗） */
-  .px-home-recent-map-link .px-map-thumb {
-    @apply h-14 w-20 shrink-0;
-    -webkit-mask-image: linear-gradient(
-      to right,
-      #000 0%,
-      #000 28%,
-      rgb(0 0 0 / 0.55) 62%,
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      to right,
-      #000 0%,
-      #000 28%,
-      rgb(0 0 0 / 0.55) 62%,
-      transparent 100%
-    );
-  }
+  /* 最新记录缩略图 mask：见 components/table.css（.px-home-recent-map-link .px-map-thumb） */
 
   .px-home-recent-map-text {
     @apply flex min-w-0 flex-1 flex-col justify-center overflow-hidden py-2;

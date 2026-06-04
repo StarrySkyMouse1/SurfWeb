@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Configurations\Configurations.csproj" />
     <ProjectReference Include="..\Services\SurfWeb.Services.csproj" />
     <ProjectReference Include="..\SurfWeb.ServerStatus\SurfWeb.ServerStatus.csproj" />
+    <ProjectReference Include="..\SurfWeb.Realtime\SurfWeb.Realtime.csproj" />
     <ProjectReference Include="..\SurfWeb.Core\SurfWeb.Core.csproj" />
   </ItemGroup>
 

@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SurfWeb · 玩家页 v2 视觉稿</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --px-ink: #121212;
+      --px-paper: #f3f1eb;
+      --px-paper-2: #ffffff;
+      --px-muted: #6b6b6b;
+      --px-accent: #3d5afe;
+      --px-accent-soft: #e8edff;
+      --px-grid: rgba(18, 18, 18, 0.04);
+      --px-shadow: 4px 4px 0 var(--px-ink);
+      --px-shadow-sm: 2px 2px 0 var(--px-ink);
+      --px-border: 2px solid var(--px-ink);
+      /* 内部分隔：细线、低对比，不与外框 2px 描边同款 */
+      --px-divider: 1px solid rgba(18, 18, 18, 0.16);
+      --px-divider-on-dark: 1px solid rgba(255, 255, 255, 0.22);
+      --px-chart-plot-h: 5.25rem;
+      /* 双图块区固定高度：切换近期/WR/未完成时不跳动 */
+      --px-chart-block-min-h: 9.875rem;
+      --px-chart-body-min-h: calc(var(--px-chart-block-min-h) * 2 + 0.75rem);
+      --px-tile-gradient: linear-gradient(145deg, var(--px-accent-soft) 0%, var(--px-paper-2) 58%);
+    }
+    body {
+      font-family: "IBM Plex Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: var(--px-paper);
+      background-image:
+        linear-gradient(var(--px-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--px-grid) 1px, transparent 1px);
+      background-size: 8px 8px;
+      color: var(--px-ink);
+    }
+    .font-pixel { font-family: Silkscreen, monospace; letter-spacing: 0.02em; }
+    .font-mono-time { font-family: "JetBrains Mono", monospace; }
+    .px-card {
+      border: var(--px-border);
+      background: var(--px-paper-2);
+      box-shadow: var(--px-shadow);
+    }
+    .px-card-sm {
+      border: var(--px-border);
+      background: var(--px-paper-2);
+      box-shadow: var(--px-shadow-sm);
+    }
+    .px-btn {
+      border: var(--px-border);
+      box-shadow: var(--px-shadow-sm);
+      transition: transform 0.05s ease, box-shadow 0.05s ease;
+      cursor: pointer;
+    }
+    .px-btn:hover { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--px-ink); }
+    .px-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+    .px-btn-active {
+      background: var(--px-ink);
+      color: var(--px-paper-2);
+      box-shadow: none;
+      transform: translate(2px, 2px);
+    }
+    .px-chip {
+      border: var(--px-border);
+      font-family: Silkscreen, monospace;
+      font-size: 10px;
+      line-height: 1;
+      padding: 4px 6px;
+      box-shadow: 2px 2px 0 var(--px-ink);
+      display: inline-block;
+    }
+    .px-table-head {
+      border-bottom: var(--px-divider-on-dark);
+      background: var(--px-ink);
+      color: var(--px-paper-2);
+    }
+    .px-table-head th {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .px-row { border-top: 1px solid rgba(18, 18, 18, 0.12); }
+    .px-row:hover { background: var(--px-ink); color: var(--px-paper-2); }
+    .px-row:hover .text-muted { color: rgba(255,255,255,0.65); }
+    .px-row:hover .px-chip { border-color: var(--px-paper-2); color: inherit; }
+    .px-map-thumb {
+      width: 5rem;
+      height: 3.5rem;
+      flex-shrink: 0;
+      border-right: var(--px-border);
+      image-rendering: pixelated;
+      background:
+        linear-gradient(135deg, #d4d4d4 25%, transparent 25%) -4px 0,
+        linear-gradient(225deg, #d4d4d4 25%, transparent 25%) -4px 0,
+        linear-gradient(45deg, #d4d4d4 25%, transparent 25%),
+        linear-gradient(315deg, #d4d4d4 25%, #e5e5e5 25%);
+      background-size: 8px 8px;
+    }
+    .tier-0 { --tier: #a3a3a3; }
+    .tier-1 { --tier: #737373; }
+    .tier-2 { --tier: #16a34a; }
+    .tier-3 { --tier: #2563eb; }
+    .tier-4 { --tier: #7c3aed; }
+    .tier-5 { --tier: #ea580c; }
+    .tier-6 { --tier: #dc2626; }
+    .px-tier { color: var(--tier); border-color: var(--tier); }
+    /* 资料区：冲浪档案 · 三列 bento（中/右列为双层或多层叠卡） */
+    .px-player-passport {
+      position: relative;
+      overflow: hidden;
+      padding: 0;
+    }
+    .px-passport-watermark {
+      position: absolute;
+      right: -0.15em;
+      top: 50%;
+      transform: translateY(-52%);
+      font-family: Silkscreen, monospace;
+      font-size: clamp(4.5rem, 14vw, 7.5rem);
+      line-height: 1;
+      color: var(--px-ink);
+      opacity: 0.04;
+      pointer-events: none;
+      user-select: none;
+      letter-spacing: -0.02em;
+    }
+    .px-passport-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      border-bottom: var(--px-divider);
+      background: var(--px-surface);
+      color: var(--px-ink);
+    }
+    .px-passport-header-main {
+      padding: 0.75rem 1rem 0.875rem;
+      min-width: 0;
+    }
+    .px-passport-header-id {
+      margin-top: 0.25rem;
+      font-family: "JetBrains Mono", monospace;
+      font-size: clamp(1.5rem, 4vw, 1.875rem);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      color: var(--px-ink);
+    }
+    .px-passport-header-sub {
+      margin-top: 0.375rem;
+      font-size: 0.6875rem;
+      color: var(--px-muted);
+    }
+    .px-passport-bento {
+      display: grid;
+      gap: 0.625rem;
+      padding: 0.75rem 1rem 1rem;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 640px) {
+      /* 右列含三张横排勋章，略宽于积分 / 完成主线两列 */
+      .px-passport-bento {
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.35fr);
+        align-items: stretch;
+      }
+    }
+    @media (min-width: 640px) and (max-width: 960px) {
+      .px-passport-bento {
+        grid-template-columns: minmax(0, 0.82fr) minmax(0, 0.82fr) minmax(0, 1.5fr);
+      }
+    }
+    .px-passport-tile {
+      position: relative;
+      z-index: 1;
+      border: var(--px-border);
+      background: var(--px-tile-gradient);
+      box-shadow: var(--px-shadow-sm);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 0.5rem 0.625rem 0.5625rem;
+      min-height: 3.375rem;
+    }
+    .px-passport-tile::before,
+    .px-passport-tile::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border: 2px solid var(--px-ink);
+      pointer-events: none;
+    }
+    .px-passport-tile::before {
+      top: 5px;
+      left: 5px;
+      border-right: none;
+      border-bottom: none;
+    }
+    .px-passport-tile::after {
+      bottom: 5px;
+      right: 5px;
+      border-left: none;
+      border-top: none;
+    }
+    .px-passport-tile-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      color: var(--px-muted);
+      line-height: 1.25;
+    }
+    .px-passport-tile-rank {
+      margin-top: 0.25rem;
+      font-family: Silkscreen, monospace;
+      font-size: clamp(1.125rem, 3.2vw, 1.375rem);
+      line-height: 1;
+      color: var(--px-accent);
+      text-shadow: 2px 2px 0 var(--px-ink);
+    }
+    .px-passport-tile-val {
+      margin-top: 0.125rem;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: var(--px-ink);
+    }
+    /* 完成主线：上主指标 + 下完成奖励，两张独立卡片叠放 */
+    .px-passport-tile-stack {
+      container-type: inline-size;
+      container-name: passport-stack;
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      min-width: 0;
+      height: 100%;
+    }
+    .px-passport-tile-stack > .px-passport-tile:first-child {
+      flex: 0 0 auto;
+    }
+    /* 叠卡下层：勋章卡；三枚横排随列宽用容器查询自适应 */
+    .px-passport-medal-row {
+      display: grid;
+      gap: 0.375rem;
+      flex: 0 0 auto;
+      min-width: 0;
+      width: 100%;
+    }
+    .px-passport-medal-row--single {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .px-passport-medal-row--triple {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    @container passport-stack (min-width: 17.5rem) {
+      .px-passport-medal-row--triple {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+    @container passport-stack (min-width: 11.5rem) and (max-width: 17.49rem) {
+      .px-passport-medal-row--triple {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .px-passport-medal-row--triple .px-passport-medal:last-child {
+        grid-column: 1 / -1;
+      }
+    }
+    .px-passport-medal {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      min-width: 0;
+      border: var(--px-border);
+      background: var(--px-paper-2);
+      box-shadow: var(--px-shadow-sm);
+      padding: 0.4375rem 0.5rem 0.4375rem 0.4375rem;
+      box-sizing: border-box;
+    }
+    .px-passport-medal-rank {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.125rem;
+      height: 2.125rem;
+      border: var(--px-border);
+      background: var(--px-ink);
+      color: var(--px-paper-2);
+      font-family: Silkscreen, monospace;
+      font-size: 10px;
+      line-height: 1;
+    }
+    .px-passport-medal-body {
+      min-width: 0;
+      flex: 1;
+      line-height: 1.2;
+    }
+    .px-passport-medal-label {
+      display: block;
+      font-size: 0.625rem;
+      font-weight: 700;
+      color: var(--px-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .px-passport-medal-val {
+      display: block;
+      margin-top: 0.0625rem;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.8125rem;
+      font-weight: 700;
+    }
+    .px-passport-tile-stack--wr .px-passport-medal-row--triple .px-passport-medal-label {
+      font-size: 0.5625rem;
+    }
+    /* 大按钮：与原先单行 Tab 同尺寸；小按钮：略小一档 */
+    .px-filter-main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.375rem;
+    }
+    .px-filter-main-btn {
+      border: var(--px-border);
+      background: white;
+      box-shadow: var(--px-shadow-sm);
+      box-sizing: border-box;
+      width: 5.75rem;
+      min-width: 5.75rem;
+      padding: 0.375rem 0.625rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.05s ease;
+    }
+    .px-filter-main-btn[aria-selected="true"] {
+      background: var(--px-ink);
+      color: white;
+      box-shadow: none;
+      transform: translate(2px, 2px);
+    }
+    .px-filter-scope {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      margin-bottom: 1rem;
+    }
+    .px-filter-scope-btn {
+      border: var(--px-border);
+      background: white;
+      box-shadow: var(--px-shadow-sm);
+      padding: 0.2rem 0.5rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.05s ease;
+    }
+    .px-filter-scope-btn[aria-selected="true"] {
+      background: var(--px-ink);
+      color: white;
+      box-shadow: none;
+      transform: translate(1px, 1px);
+    }
+    .px-map-cell {
+      display: flex;
+      align-items: stretch;
+      min-height: 3.5rem;
+      padding: 0;
+    }
+    .px-map-cell-body {
+      display: flex;
+      min-width: 0;
+      flex: 1;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.25rem;
+      padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+    }
+    table.data-table { width: 100%; min-width: 560px; table-layout: fixed; font-size: 0.875rem; text-align: left; }
+    .cell-pad { padding: 0.5rem 0.75rem; vertical-align: middle; }
+    .text-muted { color: var(--px-muted); }
+    /* 表格 : 图表 ≈ φ : 1（表格为较大侧，约 61.8% : 38.2%） */
+    .px-records-split {
+      display: grid;
+      gap: 1rem;
+      align-items: start;
+    }
+    .px-records-table-col {
+      order: 1;
+    }
+    .px-records-chart-col {
+      order: 2;
+    }
+    @media (min-width: 900px) {
+      .px-records-split {
+        grid-template-columns: 1.618fr 1fr;
+      }
+    }
+    .px-records-chart-col {
+      min-width: 0;
+    }
+    .px-records-table-col {
+      min-width: 0;
+    }
+    .px-records-table-col .px-card {
+      display: flex;
+      flex-direction: column;
+    }
+    .px-records-table-col .table-panel {
+      flex: 0 0 auto;
+    }
+    /* 表头 + 固定 10 行（与首页 h-14 / --px-home-table-block-h 一致） */
+    .px-records-table-wrap {
+      --px-records-row-h: 3.5rem;
+      --px-records-head-h: 2.5rem;
+      --px-records-body-h: calc(10 * var(--px-records-row-h));
+      max-height: calc(var(--px-records-head-h) + var(--px-records-body-h));
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
+    .px-records-table-wrap::-webkit-scrollbar {
+      display: none;
+    }
+    .px-records-table-wrap .data-table thead tr {
+      height: var(--px-records-head-h);
+    }
+    .px-records-table-wrap .data-table tbody {
+      min-height: var(--px-records-body-h);
+    }
+    .px-records-table-wrap .data-table tbody tr {
+      height: var(--px-records-row-h);
+      max-height: var(--px-records-row-h);
+    }
+    .px-records-table-wrap .data-table td,
+    .px-records-table-wrap .data-table th {
+      overflow: hidden;
+    }
+    .px-records-table-wrap .px-map-cell {
+      min-height: var(--px-records-row-h);
+      height: 100%;
+    }
+    .px-records-table-wrap .px-map-thumb {
+      height: 100%;
+      min-height: var(--px-records-row-h);
+      box-sizing: border-box;
+    }
+    .px-records-table-wrap tbody tr:nth-child(even) {
+      background: var(--px-paper-2);
+    }
+    .px-records-table-wrap tbody tr.px-row-fill td {
+      padding: 0;
+      border-top: 1px solid rgba(18, 18, 18, 0.12);
+    }
+    .px-chart-panel {
+      border: var(--px-border);
+      background: var(--px-paper-2);
+      box-shadow: var(--px-shadow-sm);
+      display: flex;
+      flex-direction: column;
+    }
+    /* 与 .px-table-head 同高、同色，左表右图顶栏对齐 */
+    .px-chart-panel-head {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      min-height: 2.25rem;
+      box-sizing: border-box;
+      border-bottom: var(--px-divider-on-dark);
+      background: var(--px-ink);
+      color: var(--px-paper-2);
+      flex-shrink: 0;
+    }
+    .px-chart-panel-head-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+    .px-chart-panel-head-hint {
+      font-size: 0.625rem;
+      font-weight: 600;
+      opacity: 0.7;
+      white-space: nowrap;
+    }
+    .px-chart-panel-body {
+      position: relative;
+      flex: 0 0 auto;
+      padding: 0.75rem 1rem 1rem;
+    }
+    .chart-view {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-height: var(--px-chart-body-min-h);
+      box-sizing: border-box;
+    }
+    .chart-view.hidden {
+      display: none;
+    }
+    .px-chart-block {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      min-height: var(--px-chart-block-min-h);
+      border: var(--px-divider);
+      background: var(--px-paper);
+      padding: 0.625rem 0.75rem 0.75rem;
+      box-sizing: border-box;
+    }
+    .px-chart-block-title {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      color: var(--px-muted);
+      margin-bottom: 0.75rem;
+    }
+    /* 竖向柱状图：固定绘图区高度；最高蓝、最低灰、其余黑；柱顶显示数值 */
+    .px-chart-bars {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 0.25rem;
+      height: var(--px-chart-plot-h);
+      padding-top: 0.125rem;
+      border-bottom: var(--px-divider);
+    }
+    .px-panel-foot {
+      border-top: var(--px-divider);
+    }
+    .px-chart-panel-head .px-chart-hint-wide { display: none; }
+    @media (min-width: 640px) {
+      .px-chart-panel-head .px-chart-hint-wide { display: block; }
+    }
+    .px-chart-bar-col {
+      flex: 1;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 0.25rem;
+      align-items: end;
+      justify-items: center;
+      min-width: 0;
+      min-height: 0;
+    }
+    .px-chart-bar-cell {
+      grid-row: 1;
+      align-self: end;
+      justify-self: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      width: 100%;
+      max-width: 2rem;
+      height: 100%;
+      min-height: 0;
+    }
+    .px-chart-bar-value {
+      flex-shrink: 0;
+      margin-bottom: 0.125rem;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--px-ink);
+    }
+    .px-chart-bar-value.is-accent { color: var(--px-accent); }
+    .px-chart-bar-value.is-muted { color: var(--px-muted); }
+    .px-chart-bar {
+      width: 100%;
+      min-width: 0.625rem;
+      background: var(--px-ink);
+      border: 1px solid var(--px-ink);
+      box-sizing: border-box;
+      min-height: 3px;
+    }
+    .px-chart-bar.accent { background: var(--px-accent); border-color: var(--px-accent); }
+    .px-chart-bar.muted { background: rgba(18, 18, 18, 0.2); border-color: rgba(18, 18, 18, 0.35); }
+    .px-chart-axis-label {
+      grid-row: 2;
+      font-family: Silkscreen, monospace;
+      font-size: 9px;
+      color: var(--px-muted);
+    }
+    .px-chart-bars--months {
+      gap: 0.125rem;
+    }
+    .px-chart-bars--months .px-chart-bar-cell {
+      max-width: 1rem;
+    }
+    .px-chart-bars--months .px-chart-bar {
+      min-width: 0.375rem;
+    }
+    .px-chart-bars--months .px-chart-bar-value {
+      font-size: 7px;
+    }
+    .px-chart-bars--compare .px-chart-bar-cell {
+      max-width: none;
+    }
+    .px-chart-bars--compare .px-chart-bar {
+      min-width: 1.5rem;
+    }
+    .px-chart-bars--months .px-chart-axis-label {
+      font-size: 7px;
+      letter-spacing: -0.04em;
+    }
+    .px-chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-size: 0.625rem;
+      color: var(--px-muted);
+    }
+    .px-chart-block .px-chart-legend,
+    .px-chart-block .px-chart-stat-row {
+      margin-top: auto;
+      padding-top: 0.625rem;
+    }
+    .px-chart-legend span::before {
+      content: '';
+      display: inline-block;
+      width: 0.5rem;
+      height: 0.5rem;
+      margin-right: 0.25rem;
+      vertical-align: middle;
+      border: 1px solid var(--px-ink);
+      background: var(--px-ink);
+    }
+    .px-chart-legend .accent::before { background: var(--px-accent); border-color: var(--px-accent); }
+    .px-chart-legend .muted::before {
+      background: rgba(18, 18, 18, 0.2);
+      border-color: rgba(18, 18, 18, 0.35);
+    }
+    .px-chart-stat-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.6875rem;
+    }
+    .px-chart-stat-row strong { font-family: "JetBrains Mono", monospace; font-size: 0.8125rem; }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+  <div class="mx-auto max-w-5xl px-4 py-8">
+    <!-- 设计说明 -->
+    <div class="mb-6 px-card p-6">
+      <p class="font-pixel text-[10px] text-[var(--px-accent)]">DESIGN PREVIEW · PLAYER v2</p>
+      <h1 class="mt-2 text-2xl font-bold tracking-tight">玩家页 · 信息扩展视觉稿</h1>
+      <p class="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
+        静态 HTML，对齐线上像素简约壳（<code class="font-mono-time text-xs">ui-pixel-minimal.html</code>）。
+        资料区为<strong>冲浪档案</strong> 三列 bento（均为上大卡 + 下勋章：积分/游戏时长、完成主线/奖励、WR 数量/三类 WR）；记录区为<strong>大按钮 + 小按钮</strong>两级筛选（近期记录 / WR / 未完成 × 主线 / 阶段 / 奖励）。本稿仅定 UI。
+      </p>
+      <ul class="mt-4 grid gap-2 text-xs text-muted sm:grid-cols-2">
+        <li>· 大按钮（原 Tab 尺寸）：近期记录、WR、未完成</li>
+        <li>· 小按钮（略小）：主线、阶段、奖励</li>
+        <li>· 筛选下方：<strong>左表右图</strong>（黄金比例 φ:1，表格约 62%）</li>
+        <li>· 近期/WR：按完成时间降序；未完成：Tier → 字母序</li>
+      </ul>
+    </div>
+
+    <!-- 站点顶栏（与 AppHeader 一致） -->
+    <header class="px-card mb-6 flex flex-wrap items-center justify-between gap-4 px-4 py-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center border-2 border-[var(--px-ink)] bg-[var(--px-accent)] font-pixel text-[9px] text-white shadow-[2px_2px_0_var(--px-ink)]">
+          SURF
+        </div>
+        <div>
+          <p class="font-bold leading-none">地满滑翔</p>
+          <p class="font-pixel mt-1 text-[9px] text-muted">SURF RECORD</p>
+        </div>
+      </div>
+      <nav class="flex flex-wrap gap-2">
+        <span class="px-btn bg-white px-3 py-2 font-pixel text-[10px]">HOME<br><span class="font-sans text-xs font-bold">首页</span></span>
+        <span class="px-btn bg-white px-3 py-2 font-pixel text-[10px]">MAPS<br><span class="font-sans text-xs font-bold">地图</span></span>
+        <span class="px-btn bg-white px-3 py-2 font-pixel text-[10px]">SRV<br><span class="font-sans text-xs font-bold">服务器</span></span>
+      </nav>
+    </header>
+
+    <!-- 玩家资料 · 冲浪档案 -->
+    <section class="px-card px-player-passport" aria-label="玩家资料">
+      <p class="px-passport-watermark" aria-hidden="true">802349</p>
+
+      <header class="px-passport-header">
+        <div class="px-passport-header-main">
+          <h2 class="px-passport-header-id">802349</h2>
+          <p class="px-passport-header-sub">玩家资料</p>
+        </div>
+      </header>
+
+      <div class="px-passport-bento">
+        <div class="px-passport-tile-stack">
+          <article class="px-passport-tile">
+            <p class="px-passport-tile-label">积分</p>
+            <p class="px-passport-tile-rank">#2</p>
+            <p class="px-passport-tile-val">192449.0</p>
+          </article>
+          <div class="px-passport-medal-row px-passport-medal-row--single" aria-label="游戏时长">
+            <div class="px-passport-medal">
+              <span class="px-passport-medal-rank">#5</span>
+              <span class="px-passport-medal-body">
+                <span class="px-passport-medal-label">游戏时长</span>
+                <span class="px-passport-medal-val font-mono-time">12天 8小时</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-passport-tile-stack">
+          <article class="px-passport-tile">
+            <p class="px-passport-tile-label">完成主线</p>
+            <p class="px-passport-tile-rank">#3</p>
+            <p class="px-passport-tile-val">142</p>
+          </article>
+          <div class="px-passport-medal-row px-passport-medal-row--single" aria-label="完成奖励">
+            <div class="px-passport-medal">
+              <span class="px-passport-medal-rank">#8</span>
+              <span class="px-passport-medal-body">
+                <span class="px-passport-medal-label">完成奖励</span>
+                <span class="px-passport-medal-val">38</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-passport-tile-stack px-passport-tile-stack--wr">
+          <article class="px-passport-tile">
+            <p class="px-passport-tile-label">WR 数量</p>
+            <p class="px-passport-tile-rank">#6</p>
+            <p class="px-passport-tile-val">31</p>
+          </article>
+          <div class="px-passport-medal-row px-passport-medal-row--triple" role="list" aria-label="WR 分类">
+            <div class="px-passport-medal" role="listitem">
+              <span class="px-passport-medal-rank">#12</span>
+              <span class="px-passport-medal-body">
+                <span class="px-passport-medal-label">主线 WR</span>
+                <span class="px-passport-medal-val">7</span>
+              </span>
+            </div>
+            <div class="px-passport-medal" role="listitem">
+              <span class="px-passport-medal-rank">#4</span>
+              <span class="px-passport-medal-body">
+                <span class="px-passport-medal-label">阶段 WR</span>
+                <span class="px-passport-medal-val">21</span>
+              </span>
+            </div>
+            <div class="px-passport-medal" role="listitem">
+              <span class="px-passport-medal-rank">#6</span>
+              <span class="px-passport-medal-body">
+                <span class="px-passport-medal-label">奖励 WR</span>
+                <span class="px-passport-medal-val">3</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 记录分栏 + 左表右图 -->
+    <section class="mt-5" aria-label="玩家记录">
+      <h3 class="mb-4 text-lg font-bold">记录与进度</h3>
+
+      <div class="px-filter-main" role="tablist" aria-label="记录大类">
+        <button type="button" class="px-filter-main-btn" role="tab" data-category="recent" aria-selected="true">近期记录</button>
+        <button type="button" class="px-filter-main-btn" role="tab" data-category="wr" aria-selected="false">WR</button>
+        <button type="button" class="px-filter-main-btn" role="tab" data-category="incomplete" aria-selected="false">未完成</button>
+      </div>
+      <div class="px-filter-scope mb-4" role="tablist" aria-label="主线 / 阶段 / 奖励">
+        <button type="button" class="px-filter-scope-btn" role="tab" data-scope="main" aria-selected="true">主线</button>
+        <button type="button" class="px-filter-scope-btn" role="tab" data-scope="stage" aria-selected="false">阶段</button>
+        <button type="button" class="px-filter-scope-btn" role="tab" data-scope="bonus" aria-selected="false">奖励</button>
+      </div>
+
+      <div class="px-records-split">
+        <div class="px-records-chart-col">
+      <div class="px-chart-panel" aria-label="图表概览">
+        <div class="px-chart-panel-head">
+          <span id="chart-panel-title" class="px-chart-panel-head-title">近期记录 · 主线</span>
+          <span id="chart-panel-hint" class="px-chart-panel-head-hint px-chart-hint-wide">图表</span>
+        </div>
+        <div class="px-chart-panel-body">
+          <!-- 近期记录 -->
+          <div id="chart-recent" class="chart-view">
+            <div class="px-chart-block">
+              <p class="px-chart-block-title">今年完成次数</p>
+              <div class="px-chart-bars px-chart-bars--months" role="img" aria-label="今年按月完成柱状图">
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="12"></div></div><span class="px-chart-axis-label">1月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="18"></div></div><span class="px-chart-axis-label">2月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="28"></div></div><span class="px-chart-axis-label">3月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="24"></div></div><span class="px-chart-axis-label">4月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="20"></div></div><span class="px-chart-axis-label">5月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="16"></div></div><span class="px-chart-axis-label">6月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="0"></div></div><span class="px-chart-axis-label">7月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="0"></div></div><span class="px-chart-axis-label">8月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="0"></div></div><span class="px-chart-axis-label">9月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="0"></div></div><span class="px-chart-axis-label">10月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="0"></div></div><span class="px-chart-axis-label">11月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="0"></div></div><span class="px-chart-axis-label">12月</span></div>
+              </div>
+              <div class="px-chart-legend"><span class="accent">最高</span><span class="muted">最低</span><span>其余</span></div>
+            </div>
+            <div class="px-chart-block">
+              <p id="chart-recent-tier-title" class="px-chart-block-title">主线完成 · 按 Tier</p>
+              <div class="px-chart-bars" role="img" aria-label="Tier 分布柱状图">
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="52"></div></div><span class="px-chart-axis-label">T1</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="58"></div></div><span class="px-chart-axis-label">T2</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="38"></div></div><span class="px-chart-axis-label">T3</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="30"></div></div><span class="px-chart-axis-label">T4</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="15"></div></div><span class="px-chart-axis-label">T5</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="6"></div></div><span class="px-chart-axis-label">T6</span></div>
+              </div>
+              <div class="px-chart-stat-row">
+                <span>本范围累计 <strong id="chart-recent-total">142</strong></span>
+                <span>最多 Tier <strong>T2</strong></span>
+              </div>
+            </div>
+          </div>
+          <!-- WR -->
+          <div id="chart-wr" class="chart-view hidden">
+            <div class="px-chart-block">
+              <p class="px-chart-block-title">WR 达成 · 今年</p>
+              <div class="px-chart-bars px-chart-bars--months" role="img" aria-label="今年 WR 柱状图">
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="2"></div></div><span class="px-chart-axis-label">1月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="3"></div></div><span class="px-chart-axis-label">2月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="3"></div></div><span class="px-chart-axis-label">3月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="4"></div></div><span class="px-chart-axis-label">4月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="4"></div></div><span class="px-chart-axis-label">5月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="5"></div></div><span class="px-chart-axis-label">6月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="5"></div></div><span class="px-chart-axis-label">7月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="8"></div></div><span class="px-chart-axis-label">8月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="6"></div></div><span class="px-chart-axis-label">9月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="5"></div></div><span class="px-chart-axis-label">10月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="4"></div></div><span class="px-chart-axis-label">11月</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="3"></div></div><span class="px-chart-axis-label">12月</span></div>
+              </div>
+              <div class="px-chart-legend"><span class="accent">最高</span><span class="muted">最低</span><span>其余</span></div>
+              <div class="px-chart-stat-row">
+                <span>当前范围 WR <strong id="chart-wr-total">7</strong></span>
+              </div>
+            </div>
+            <div class="px-chart-block">
+              <p id="chart-wr-tier-title" class="px-chart-block-title">主线 WR · 按 Tier</p>
+              <div class="px-chart-bars" role="img" aria-label="Tier WR 分布柱状图">
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="0"></div></div><span class="px-chart-axis-label">T1</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="2"></div></div><span class="px-chart-axis-label">T2</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="3"></div></div><span class="px-chart-axis-label">T3</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="4"></div></div><span class="px-chart-axis-label">T4</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="1"></div></div><span class="px-chart-axis-label">T5</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="0"></div></div><span class="px-chart-axis-label">T6</span></div>
+              </div>
+              <div class="px-chart-legend"><span class="accent">最高</span><span class="muted">最低</span><span>其余</span></div>
+            </div>
+          </div>
+          <!-- 未完成 -->
+          <div id="chart-incomplete" class="chart-view hidden">
+            <div class="px-chart-block">
+              <p class="px-chart-block-title">全图库完成率</p>
+              <div class="px-chart-bars px-chart-bars--compare" role="img" aria-label="完成率柱状图">
+                <div class="px-chart-bar-col" style="flex: 2">
+                  <div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="142"></div></div>
+                  <span class="px-chart-axis-label">已完成</span>
+                </div>
+                <div class="px-chart-bar-col" style="flex: 1">
+                  <div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="48"></div></div>
+                  <span class="px-chart-axis-label">未完成</span>
+                </div>
+              </div>
+              <div class="px-chart-legend"><span class="accent">最高</span><span class="muted">最低</span><span>其余</span></div>
+              <div class="px-chart-stat-row">
+                <span>完成 <strong>68%</strong></span>
+                <span>剩余 <strong id="chart-incomplete-total">48</strong></span>
+              </div>
+            </div>
+            <div class="px-chart-block">
+              <p id="chart-incomplete-tier-title" class="px-chart-block-title">未完成 · 按 Tier</p>
+              <div class="px-chart-bars" role="img" aria-label="未完成 Tier 分布柱状图">
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="22"></div></div><span class="px-chart-axis-label">T1</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="14"></div></div><span class="px-chart-axis-label">T2</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="11"></div></div><span class="px-chart-axis-label">T3</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="8"></div></div><span class="px-chart-axis-label">T4</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="5"></div></div><span class="px-chart-axis-label">T5</span></div>
+                <div class="px-chart-bar-col"><div class="px-chart-bar-cell"><span class="px-chart-bar-value"></span><div class="px-chart-bar" data-value="2"></div></div><span class="px-chart-axis-label">T6</span></div>
+              </div>
+              <div class="px-chart-legend"><span class="accent">最高</span><span class="muted">最低</span><span>其余</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+        </div>
+
+        <div class="px-records-table-col">
+      <div class="px-card overflow-hidden">
+        <!-- Panel: 近期主线 -->
+        <div id="panel-recent-main" class="table-panel px-records-table-wrap">
+          <table class="data-table">
+            <colgroup>
+              <col style="width:40%" />
+              <col style="width:5rem" />
+              <col style="width:7rem" />
+              <col style="width:5rem" />
+              <col style="width:9rem" />
+            </colgroup>
+            <thead class="px-table-head">
+              <tr>
+                <th>地图</th>
+                <th>Tier</th>
+                <th class="text-right">时间</th>
+                <th class="text-right">同步</th>
+                <th class="text-right">日期</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_commune_beta11</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-2 px-tier bg-white">T2</span></td>
+                <td class="cell-pad text-right font-mono-time font-bold">00:45.524</td>
+                <td class="cell-pad text-right font-mono-time">92%</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2026/05/30 12:28</td>
+              </tr>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_palais</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-1 px-tier bg-white">T1</span></td>
+                <td class="cell-pad text-right font-mono-time font-bold">00:35.057</td>
+                <td class="cell-pad text-right font-mono-time">99%</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/27 20:28</td>
+              </tr>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_utopia</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-4 px-tier bg-white">T4</span></td>
+                <td class="cell-pad text-right font-mono-time font-bold">00:42.310</td>
+                <td class="cell-pad text-right font-mono-time">98%</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/24 18:40</td>
+              </tr>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_aqua-flow2</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-3 px-tier bg-white">T3</span></td>
+                <td class="cell-pad text-right font-mono-time font-bold">01:12.884</td>
+                <td class="cell-pad text-right font-mono-time">95%</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/22 09:15</td>
+              </tr>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_kitsune</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-2 px-tier bg-white">T2</span></td>
+                <td class="cell-pad text-right font-mono-time font-bold">00:58.102</td>
+                <td class="cell-pad text-right font-mono-time">97%</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/19 21:03</td>
+              </tr>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_mesa_revo</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-1 px-tier bg-white">T1</span></td>
+                <td class="cell-pad text-right font-mono-time font-bold">00:28.441</td>
+                <td class="cell-pad text-right font-mono-time">100%</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/18 14:52</td>
+              </tr>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_silkroad</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-0 px-tier bg-white">T0</span></td>
+                <td class="cell-pad text-right font-mono-time font-bold">02:04.019</td>
+                <td class="cell-pad text-right font-mono-time">88%</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/15 08:37</td>
+              </tr>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_nebula</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-3 px-tier bg-white">T3</span></td>
+                <td class="cell-pad text-right font-mono-time font-bold">01:31.670</td>
+                <td class="cell-pad text-right font-mono-time">94%</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/12 19:44</td>
+              </tr>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_frostbite</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-2 px-tier bg-white">T2</span></td>
+                <td class="cell-pad text-right font-mono-time font-bold">00:51.203</td>
+                <td class="cell-pad text-right font-mono-time">96%</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/10 16:20</td>
+              </tr>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_horizon</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-4 px-tier bg-white">T4</span></td>
+                <td class="cell-pad text-right font-mono-time font-bold">03:18.552</td>
+                <td class="cell-pad text-right font-mono-time">91%</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/08 11:06</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Panel: 近期阶段 -->
+        <div id="panel-recent-stage" class="table-panel px-records-table-wrap hidden">
+          <table class="data-table">
+            <colgroup>
+              <col style="width:36%" />
+              <col style="width:12%" />
+              <col style="width:5rem" />
+              <col style="width:7rem" />
+              <col style="width:9rem" />
+            </colgroup>
+            <thead class="px-table-head">
+              <tr>
+                <th>地图</th>
+                <th>Tier</th>
+                <th>阶段</th>
+                <th class="text-right">时间</th>
+                <th class="text-right">日期</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_aqua-flow2</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-3 px-tier bg-white">T3</span></td>
+                <td class="cell-pad font-pixel text-[9px]">阶段 3</td>
+                <td class="cell-pad text-right font-mono-time font-bold">00:08.221</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/27 11:05</td>
+              </tr>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_aqua-flow2</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-3 px-tier bg-white">T3</span></td>
+                <td class="cell-pad font-pixel text-[9px]">阶段 1</td>
+                <td class="cell-pad text-right font-mono-time font-bold">00:04.902</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/27 10:58</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Panel: 近期奖励 -->
+        <div id="panel-recent-bonus" class="table-panel px-records-table-wrap hidden">
+          <table class="data-table">
+            <colgroup>
+              <col style="width:38%" />
+              <col style="width:10%" />
+              <col style="width:5rem" />
+              <col style="width:7rem" />
+              <col style="width:5rem" />
+              <col style="width:9rem" />
+            </colgroup>
+            <thead class="px-table-head">
+              <tr>
+                <th>地图</th>
+                <th>Tier</th>
+                <th>赛道</th>
+                <th class="text-right">时间</th>
+                <th class="text-right">同步</th>
+                <th class="text-right">日期</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_mesa_revo</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-4 px-tier bg-white">T4</span></td>
+                <td class="cell-pad font-pixel text-[9px]">B2</td>
+                <td class="cell-pad text-right font-mono-time font-bold">01:12.440</td>
+                <td class="cell-pad text-right font-mono-time">96%</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/26 14:02</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Panel: WR 主线 -->
+        <div id="panel-wr-main" class="table-panel px-records-table-wrap hidden">
+          <table class="data-table">
+            <colgroup>
+              <col style="width:40%" />
+              <col style="width:5rem" />
+              <col style="width:7rem" />
+              <col style="width:9rem" />
+            </colgroup>
+            <thead class="px-table-head">
+              <tr>
+                <th>地图</th>
+                <th>Tier</th>
+                <th class="text-right">WR 时间</th>
+                <th class="text-right">达成日期</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_utopia</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-4 px-tier bg-white">T4</span></td>
+                <td class="cell-pad text-right font-mono-time font-bold">00:42.310</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/04/12 21:33</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Panel: WR 阶段 -->
+        <div id="panel-wr-stage" class="table-panel px-records-table-wrap hidden">
+          <table class="data-table">
+            <colgroup>
+              <col style="width:36%" />
+              <col style="width:12%" />
+              <col style="width:5rem" />
+              <col style="width:7rem" />
+              <col style="width:9rem" />
+            </colgroup>
+            <thead class="px-table-head">
+              <tr>
+                <th>地图</th>
+                <th>Tier</th>
+                <th>阶段</th>
+                <th class="text-right">WR 时间</th>
+                <th class="text-right">达成日期</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_aqua-flow2</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-3 px-tier bg-white">T3</span></td>
+                <td class="cell-pad font-pixel text-[9px]">阶段 2</td>
+                <td class="cell-pad text-right font-mono-time font-bold">00:06.104</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/05/10 16:20</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Panel: WR 奖励 -->
+        <div id="panel-wr-bonus" class="table-panel px-records-table-wrap hidden">
+          <table class="data-table">
+            <colgroup>
+              <col style="width:38%" />
+              <col style="width:10%" />
+              <col style="width:5rem" />
+              <col style="width:7rem" />
+              <col style="width:9rem" />
+            </colgroup>
+            <thead class="px-table-head">
+              <tr>
+                <th>地图</th>
+                <th>Tier</th>
+                <th>赛道</th>
+                <th class="text-right">WR 时间</th>
+                <th class="text-right">达成日期</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_mesa_revo</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-4 px-tier bg-white">T4</span></td>
+                <td class="cell-pad font-pixel text-[9px]">B1</td>
+                <td class="cell-pad text-right font-mono-time font-bold">01:05.882</td>
+                <td class="cell-pad text-right font-mono-time text-xs">2024/03/08 09:41</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Panel: 未完成 主线（表头/行样式与近期记录一致，仅列更少） -->
+        <div id="panel-incomplete-main" class="table-panel px-records-table-wrap hidden">
+          <table class="data-table">
+            <colgroup>
+              <col style="width:40%" />
+              <col style="width:5rem" />
+            </colgroup>
+            <thead class="px-table-head">
+              <tr>
+                <th>地图</th>
+                <th>Tier</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_beginner</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-1 px-tier bg-white">T1</span></td>
+              </tr>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_colors</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-2 px-tier bg-white">T2</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Panel: 未完成 阶段 -->
+        <div id="panel-incomplete-stage" class="table-panel px-records-table-wrap hidden">
+          <table class="data-table">
+            <colgroup>
+              <col style="width:40%" />
+              <col style="width:5rem" />
+              <col style="width:6rem" />
+            </colgroup>
+            <thead class="px-table-head">
+              <tr>
+                <th>地图</th>
+                <th>Tier</th>
+                <th>阶段</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_aqua-flow2</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-3 px-tier bg-white">T3</span></td>
+                <td class="cell-pad font-pixel text-[9px]">阶段 4</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Panel: 未完成 奖励 -->
+        <div id="panel-incomplete-bonus" class="table-panel px-records-table-wrap hidden">
+          <table class="data-table">
+            <colgroup>
+              <col style="width:40%" />
+              <col style="width:5rem" />
+              <col style="width:5rem" />
+            </colgroup>
+            <thead class="px-table-head">
+              <tr>
+                <th>地图</th>
+                <th>Tier</th>
+                <th>赛道</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="px-row">
+                <td class="p-0">
+                  <div class="px-map-cell">
+                    <div class="px-map-thumb"></div>
+                    <div class="px-map-cell-body"><span class="truncate font-bold">surf_mesa_revo</span></div>
+                  </div>
+                </td>
+                <td class="cell-pad"><span class="px-chip tier-4 px-tier bg-white">T4</span></td>
+                <td class="cell-pad font-pixel text-[9px]">B3</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex items-center justify-between px-panel-foot bg-[var(--px-paper)] px-3 py-2 text-xs">
+          <span class="text-muted">共 167 条 · 第 1 / 17 页</span>
+          <div class="flex gap-2">
+            <button type="button" class="px-btn bg-white px-2 py-1 font-pixel text-[9px]">上一页</button>
+            <button type="button" class="px-btn bg-white px-2 py-1 font-pixel text-[9px]">下一页</button>
+          </div>
+        </div>
+      </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mt-10 border-t-2 border-[var(--px-ink)] pt-6 text-center">
+      <p class="font-pixel text-[10px] text-muted">PLAYER PROFILE v2 · MOCK</p>
+      <p class="mt-1 text-xs text-muted">打开方式：浏览器直接打开本文件，或从仓库 <code class="font-mono-time">docs/design-previews/</code> 目录访问</p>
+    </footer>
+  </div>
+
+  <script>
+    const categoryLabels = { recent: '近期记录', wr: 'WR', incomplete: '未完成' };
+    const scopeLabels = { main: '主线', stage: '阶段', bonus: '奖励' };
+    let category = 'recent';
+    let scope = 'main';
+
+    const chartTitles = {
+      recent: { main: '主线完成 · 按 Tier', stage: '阶段记录 · 按 Tier', bonus: '奖励完成 · 按 Tier' },
+      wr: { main: '主线 WR · 按 Tier', stage: '阶段 WR · 按 Tier', bonus: '奖励 WR · 按 Tier' },
+      incomplete: { main: '未完成 · 按 Tier', stage: '未完成阶段 · 按 Tier', bonus: '未完成奖励 · 按 Tier' },
+    };
+    const chartTotals = {
+      recent: { main: '142', stage: '318', bonus: '38' },
+      wr: { main: '7', stage: '21', bonus: '3' },
+      incomplete: { main: '48', stage: '112', bonus: '26' },
+    };
+
+    const mainBtns = document.querySelectorAll('.px-filter-main-btn');
+    const scopeBtns = document.querySelectorAll('.px-filter-scope-btn');
+    const panels = document.querySelectorAll('.table-panel');
+    const chartViews = document.querySelectorAll('.chart-view');
+    const chartPanelTitle = document.getElementById('chart-panel-title');
+    const chartRecentTierTitle = document.getElementById('chart-recent-tier-title');
+    const chartWrTierTitle = document.getElementById('chart-wr-tier-title');
+    const chartIncompleteTierTitle = document.getElementById('chart-incomplete-tier-title');
+    const chartRecentTotal = document.getElementById('chart-recent-total');
+    const chartWrTotal = document.getElementById('chart-wr-total');
+    const chartIncompleteTotal = document.getElementById('chart-incomplete-total');
+
+    function panelKey() {
+      return category + '-' + scope;
+    }
+
+    /** 柱顶数字 + 最高蓝 / 最低灰 / 其余黑；柱高按组内最大值比例 */
+    function paintChartBars(barsEl) {
+      const cols = [...barsEl.querySelectorAll('.px-chart-bar-col')];
+      const entries = cols
+        .map((col) => {
+          const bar = col.querySelector('.px-chart-bar');
+          if (!bar) return null;
+          const value = Number(bar.dataset.value);
+          return { col, bar, value: Number.isFinite(value) ? value : 0 };
+        })
+        .filter(Boolean);
+      if (!entries.length) return;
+
+      const values = entries.map((e) => e.value);
+      const max = Math.max(...values);
+      const min = Math.min(...values);
+      const scaleMax = max > 0 ? max : 1;
+
+      entries.forEach(({ col, bar, value }) => {
+        const valEl = col.querySelector('.px-chart-bar-value');
+        if (valEl) {
+          valEl.textContent = String(value);
+          valEl.classList.remove('is-accent', 'is-muted');
+        }
+        bar.classList.remove('accent', 'muted');
+        bar.style.height = max > 0 ? (value / scaleMax) * 100 + '%' : '0%';
+
+        if (max === min) return;
+        if (value === max) {
+          bar.classList.add('accent');
+          valEl?.classList.add('is-accent');
+        } else if (value === min) {
+          bar.classList.add('muted');
+          valEl?.classList.add('is-muted');
+        }
+      });
+    }
+
+    function paintAllCharts() {
+      document.querySelectorAll('.px-chart-bars').forEach(paintChartBars);
+    }
+
+    function syncView() {
+      const key = panelKey();
+      mainBtns.forEach((b) => {
+        b.setAttribute('aria-selected', b.dataset.category === category ? 'true' : 'false');
+      });
+      scopeBtns.forEach((b) => {
+        b.setAttribute('aria-selected', b.dataset.scope === scope ? 'true' : 'false');
+      });
+      panels.forEach((p) => {
+        p.classList.toggle('hidden', p.id !== 'panel-' + key);
+      });
+      chartViews.forEach((v) => {
+        v.classList.toggle('hidden', v.id !== 'chart-' + category);
+      });
+      const label = categoryLabels[category] + ' · ' + scopeLabels[scope];
+      chartPanelTitle.textContent = label;
+      const tierTitle = chartTitles[category][scope];
+      if (chartRecentTierTitle) chartRecentTierTitle.textContent = tierTitle;
+      if (chartWrTierTitle) chartWrTierTitle.textContent = tierTitle;
+      if (chartIncompleteTierTitle) chartIncompleteTierTitle.textContent = tierTitle;
+      const total = chartTotals[category][scope];
+      if (chartRecentTotal) chartRecentTotal.textContent = total;
+      if (chartWrTotal) chartWrTotal.textContent = total;
+      if (chartIncompleteTotal) chartIncompleteTotal.textContent = total;
+    }
+
+    mainBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        category = btn.dataset.category;
+        syncView();
+      });
+    });
+
+    scopeBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        scope = btn.dataset.scope;
+        syncView();
+      });
+    });
+
+    document.querySelectorAll('.px-records-table-wrap table').forEach((table) => {
+      const tbody = table.tBodies[0];
+      if (!tbody) return;
+      const colCount =
+        table.querySelectorAll('colgroup col').length ||
+        (table.tHead?.rows[0]?.cells.length ?? 1);
+      const existing = tbody.querySelectorAll('tr:not(.px-row-fill)').length;
+      for (let i = existing; i < 10; i++) {
+        const tr = document.createElement('tr');
+        tr.className = 'px-row px-row-fill';
+        tr.setAttribute('aria-hidden', 'true');
+        const td = document.createElement('td');
+        td.colSpan = colCount;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      }
+    });
+
+    paintAllCharts();
+    syncView();
+  </script>
+</body>
+</html>
