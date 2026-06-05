@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using SurfWeb.Configurations.Swagger;
 using Microsoft.OpenApi.Models;
 
 namespace SurfWeb.Configurations;
@@ -29,6 +30,7 @@ public static class SurfWebDefaultExtensions
             services.AddSwaggerGen(options =>
             {
                 options.SwaggerDoc("v1", new OpenApiInfo { Title = "SurfWeb API", Version = "v1" });
+                options.ParameterFilter<LatestRecordsTypeParameterFilter>();
             });
         }
 

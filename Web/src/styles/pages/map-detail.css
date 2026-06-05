@@ -23,7 +23,7 @@
   }
 
   .px-map-cp-chart-area {
-    @apply relative h-64 min-h-64 w-full shrink-0 pr-1.5;
+    @apply relative isolate z-0 h-64 min-h-64 w-full shrink-0 overflow-hidden pr-1.5;
   }
 
   @media (min-width: 1024px) {
@@ -33,7 +33,13 @@
   }
 
   .px-map-cp-chart-body {
-    @apply flex flex-col;
+    @apply relative isolate z-0 flex flex-col overflow-hidden;
+  }
+
+  .px-map-cp-echarts-tooltip {
+    z-index: 1 !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .px-map-cp-legend {

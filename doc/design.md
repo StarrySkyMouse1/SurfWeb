@@ -17,7 +17,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 非目标：
 - 不提供用户登录、后台管理、成绩人工提交。
 - 不直接修改 Shavit 原库表结构。
-- 不实现完整检查点排行榜页（`cpwrs` 榜表）；地图详情仅提供主线 **TOP10 检查点差异折线图**（只读 `cptimes`，展示各检查点相对最快差距）。
+- 不实现完整检查点排行榜页（`cpwrs` 榜表）；地图详情仅提供主线 **TOP10 检查点差异折线图**（只读 `cptimes`；中间 CP tooltip 为当场最快差距，**终点**与右侧主线榜 `playertimes` 差距一致）。
 
 ---
 
@@ -28,6 +28,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 - 数据源：Shavit MySQL，只读查询。
 - 本地 API 开发地址：`http://localhost:5240`，HTTPS 地址：`https://localhost:7182`；开发环境提供 Swagger UI（`/swagger`）。
 - 前端默认 API 地址：`http://localhost:5240/api/v1`。
+- **生产发布：** 支持 **构建发布**（`dotnet publish` + `npm run build` + 宿主机 Nginx）与 **Docker**（`docker-compose.yml`）两种方式，见 **`doc/deploy.md`**；Docker 细节见 **`doc/docker.md`**。
 
 当前核心能力：
 - 地图列表、地图详情 v2（主线榜 + 检查点图 + 阶段/奖励双栏）、排行榜分页。
@@ -100,7 +101,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 - `GET /maps/{mapName}`
   - 查询地图详情。
-  - 返回主线信息、WR、完赛数、`bonusTracks`、`stages`（该图 `stagetimes` 且 `track=0` 的 `stage` 去重升序）。
+  - 返回主线信息、WR、完成数、`bonusTracks`、`stages`（该图 `stagetimes` 且 `track=0` 的 `stage` 去重升序）。
   - **读缓存：** 按地图名缓存详情（含「不存在」）；TTL 同 `MapsMinutes`，懒刷新。
 
 - `GET /maps/{mapName}/checkpoints`
@@ -151,7 +152,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
   2. **`SubscribeRecent(scope?, snapshotPageSize?)`**（`scope` 传枚举名或整型）→ 加入组 `recent:{scope}`，并收 **`RecentSnapshot`**（`RealtimeRecentRecordsSnapshotMessage`）。
   3. 后台发现**新插入**的完成记录（按表 `Id` 游标，启动时不推历史）→ 向相关组广播 **`RecordsUpdated`**（`RealtimeRecentRecordsUpdatedMessage`，`added[]`）。
   4. **`UnsubscribeRecent(scope?)`** 退订。
-- **推送项字段（`RealtimeRecentRecordDto`）：** 除地图/玩家/时间等外，含 `firstPlaceTime` / `gapFromFirst`（相对该时刻全服最快）、`personalBestTime` / `gapFromPersonalBest`（当前成绩相对该玩家此图/赛道/阶段在**该条完成时刻**的个人最快，含本条；持 PB 或差距 ≤0.001s 时为 **0**，更慢完赛时为正数）；持 WR 时 `gapFromFirst` 为 **0**。
+- **推送项字段（`RealtimeRecentRecordDto`）：** 除地图/玩家/时间等外，含 `firstPlaceTime` / `gapFromFirst`（相对该时刻全服最快）、`personalBestTime` / `gapFromPersonalBest`（当前成绩相对该玩家此图/赛道/阶段在**该条完成时刻**的个人最快，含本条；持 PB 或差距 ≤0.001s 时为 **0**，更慢完成时为正数）；持 WR 时 `gapFromFirst` 为 **0**。
 - **与 REST：** REST `GET /records/recent` 仍为缓存读侧；SignalR 为实时集成专用，断线重连后应重新 `SubscribeRecent`。
 - **开发测试（Swagger）：** `POST /api/v1/realtime/push/trigger`（仅 `Development`）手动执行一轮查库+推送；需另有客户端已 `SubscribeRecent` 才能看到 `RecordsUpdated`。
 
@@ -159,9 +160,10 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 - `GET /api/v1/api/records/latest`（`ApiController` + `IApiService` / `ApiLatestRecordsEngine`，**直查库**，无 IMemoryCache；**SignalR 推送后续拟复用本逻辑**）。
 - 查询参数：
-  - `type`（可选，`RealtimeRecentRecordScope`，大小写不敏感，缺省 **All**）：`all` / `main`（`track=0`）/ `bonus`（`track>0`）/ `stage`（`stagetimes`）。
-  - `after`（可选，ISO 8601）：仅返回完成时间**严格晚于**该时刻的记录，按 `recordedAt` **升序**（同秒按 `id` 升序），最多 `limit` 条；省略则返回最新若干条，按 `recordedAt` **降序**（第一条为最新）。
-  - `limit`（可选，默认 **100**，最大 100）。
+  - `token`（**必填**）：与配置 `SurfWeb:ExternalApi:LatestRecordsToken` 一致；缺失或不匹配返回 **401**、`error.code = unauthorized`。
+  - `type`（可选，字符串，大小写不敏感，缺省 **全部**）：`all`（0）/ `main`（1，主线 `track=0`）/ `bonus`（2，奖励 `track>0`）/ `stage`（3，阶段）；也接受整型 0–3 或枚举名 `All`/`Main`/…；非法值 **400**。
+  - `after`（可选，ISO 8601）：有值时仅返回完成时间**严格晚于**该时刻的记录，按 `recordedAt` **升序**（同秒按 `id` 升序），最多 **50** 条（`SiteLimits.ApiLatestRecordsCount`）；**省略或为空**则仅返回最新 **1** 条，按 `recordedAt` **降序**。
+  - 无 `limit` 查询参数。
 - 响应 `data`：`ApiLatestRecordDto[]` — `playerName`、`map`、`tier`、`type`、`track`、`stage`、`typeLabel`、`recordedAt`、`gapFromWr`（**不含** `gapFromMe`：Shavit `playertimes` / `stagetimes` 对同一玩家+图+赛道/阶段仅保留一条，无法计算有意义的个人差距）。
 - `gapFromWr` 按该条记录 `recordedAt` 的历史状态计算：只纳入完成时间早于该记录的成绩，完成时间相同则仅纳入 `Id <= 当前 Id` 的成绩；因此后续产生的新 WR 不会改变历史推送记录的差距。输出为带符号三位小数（如 `+1.234`）；持 WR 或差距 ≤0.001s 时为 `+0.000`。
 - 与 `GET /records/recent`（站点缓存、PB 去重）并列；当前 SignalR 仍用 `PollNewSinceAsync`（`Id` 向上增量），待后续改为复用本 API 查询。
@@ -214,7 +216,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 - 阶梯硬阴影（4px / 2px），无模糊投影。
 - 字体：**IBM Plex Sans**（中文正文）、**Silkscreen**（导航短码、区块代号、名次、Tier 芯片）、**JetBrains Mono**（时间、连接串、地图名）。
 - 强调色 `#3d5afe`（第 1 名、主按钮、Logo 块）；表头反色、行 hover 填黑与方向 C 一致。
-- 顶栏品牌：**地满滑翔** + 英文点缀 **SURF RECORD**；Logo 为 `Web/public/brand-icon.png`；导航为**中文 + 英文码**。站点 `favicon` 同图。
+- 顶栏品牌：**站点名**（`VITE_SITE_TITLE`，默认 **地满滑翔**）+ 英文点缀 **SURF RECORD**；Logo 为 `Web/public/brand-icon.png`；导航为**中文 + 英文码**。站点 `favicon` 同图；浏览器标题 `{VITE_SITE_TITLE} · Surf Record`。
 - 页内区块同为**中文主标题 + 英文像素小字**（如「最新记录」旁 RECENT）；表头等内容使用中文。
 
 样式入口：`Web/src/style.css`（Tailwind + `Web/src/styles/` 模块）。设计令牌与分层复用见 **§6.1.1**。前端工具：`Web/src/utils/format.ts`、`Web/src/utils/display.ts`、`Web/src/utils/playerCharts.ts`（玩家柱图）。
@@ -266,7 +268,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 - **组件路径：** `views/home/components/`（`HomeRankingTable`、`HomeRecentTable`、`RankingFilter`、`FilterSplitChip`（完成/WR/最新记录分栏芯片 + 范围气泡）、`RecentRecordFilter`）、`ChipFilter` / 筛选条共用 `.px-filter-chip-row`（同行垂直居中，选中无 `translate` 避免高低不齐）、`views/maps/components/`（`MapCard`、`TierFilter`）、`views/map-detail/components/`（`MapDetailHeader`、`MapDetailCategoryTabs`、`MapDetailMainPanel`、`MapDetailStageBonusPanel`、`MapCheckpointChart`、`MapLeaderboardCard`、`LeaderboardTable`）、`views/players/components/`（`PlayerPassportCard`、`PlayerRecordFilters`、`PlayerRecordsTable`、`PlayerChartsPanel`）、`views/servers/components/`（`ServerInfoPanel`）。地图详情样式：`styles/pages/map-detail.css`。
 - **单页应用（SPA）：** `vue-router` + `createWebHistory()`，导航统一用 `RouterLink`，仅 `joinServer` 使用 `steam://` 外链；`App.vue` 内 `RouterView` 带淡入淡出过渡；`scrollBehavior` 切换路由时平滑滚到顶部（浏览器后退恢复原滚动位置）。
 - 全局布局：`App.vue` 使用 `min-h-screen` + `flex-col`，`main` 占满剩余高度，页脚 `border-t` 在内容较少时仍贴齐视口底部。
-- `Web/.env.development` 默认：`VITE_API_BASE_URL=http://localhost:5240/api/v1`
+- `Web/.env.development` 默认：`VITE_API_BASE_URL=http://localhost:5240/api/v1`、`VITE_SITE_TITLE=地满滑翔`
 - 本地前端开发端口默认由 Vite 管理，后端 CORS 允许 `localhost:5173` 与 `127.0.0.1:5173`。
 
 ---
@@ -330,6 +332,7 @@ HTTP 请求
 - `SurfWeb:MapImages`：`BaseUrl` 使用 `https://example.com/surf-map-images/` 作为模板占位，真实图床目录放入本地配置；前端拼图为 `{BaseUrl}{地图名}{Extension}`
 - `SurfWeb:ServerQuery`：`RefreshSeconds`（后台 A2S 刷新间隔，默认 30）、`QueryTimeoutMs`（UDP 超时，默认 8000）
 - `SurfWeb:Servers[]`：公开默认值使用 `127.0.0.1:27015` 作为模板占位；真实服务器放入本地配置。字段包含 `Name`、`Address`（`connect host:port` 或 `host:port`）、可选 `Host`/`Port` 覆盖、`MaxPlayers` 占位。
+- `SurfWeb:ExternalApi:LatestRecordsToken`：`GET /api/v1/api/records/latest` 查询参数 `token`；未配置或为空时该接口一律 **401**（生产环境请用 User Secrets / 环境变量，勿提交真实 token）。
 
 本地开发（二选一，均不提交 Git）：
 - **推荐：** 复制 `Server/SurfWeb.Api/appsettings.Development.local.json.example` 为 `appsettings.Development.local.json`，填入数据库、地图图床和服务器地址；`AddSurfWebApi` → `AddSurfWebLocalConfiguration` 会加载 `appsettings.local.json` 与 `appsettings.{Environment}.local.json`（见 `.gitignore`）。
@@ -353,6 +356,15 @@ HTTP 请求
 ### 8.3 注意事项
 
 原本地端口 `7082` 在部分 Windows 机器上可能落入系统 TCP 排除端口区间，因此已改为 `7182`，避免 Kestrel 启动绑定失败。
+
+### 8.4 生产发布（两种模式）
+
+| 模式 | 说明 | 文档 |
+|------|------|------|
+| **A · 构建发布** | `dotnet publish` → `publish/api`；`npm run build`（`Web/.env.production`）→ `Web/dist`；宿主机 Nginx / **Windows 宝塔（IIS + 反代）** 反代 `/api`（示例 `deploy/nginx-host.example.conf`） | [`doc/deploy.md`](deploy.md) §2、§7 |
+| **B · Docker** | 根目录 `docker-compose.yml`（`web` + `api`，前端不打进 API 镜像）；配置 `.env.docker.example` → `.env` | [`doc/docker.md`](docker.md) |
+
+前端环境变量：开发 `Web/.env.development`；模式 A 生产 `Web/.env.production`（模板 `Web/.env.production.example`）；模式 B 在 `Web/Dockerfile` / 根目录 `.env` 的 `VITE_SITE_TITLE` 与 `VITE_API_BASE_URL=/api/v1`。
 
 ---
 

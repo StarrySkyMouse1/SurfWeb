@@ -72,6 +72,30 @@ npm run dev
 
 浏览器打开 <http://localhost:5173>。
 
+## 生产发布
+
+支持两种方式（不要在同一台机器混跑两套）：
+
+| 模式 | 命令概要 | 文档 |
+|------|----------|------|
+| **构建发布** | `dotnet publish` + `npm run build` + 宿主机 Nginx | **`doc/deploy.md`** |
+| **Docker** | `docker compose up -d --build` | **`doc/docker.md`** |
+
+```powershell
+# Docker 快速开始
+Copy-Item .env.docker.example .env
+docker compose up -d --build
+```
+
+```powershell
+# 构建发布快速开始
+dotnet publish Server/SurfWeb.Api -c Release -o publish/api
+cd Web
+Copy-Item .env.production.example .env.production
+npm ci && npm run build
+# 将 dist/ 与 publish/api 按 doc/deploy.md 配置 Nginx / systemd
+```
+
 ## 验证
 
 ```powershell
@@ -92,6 +116,8 @@ $env:SURFWEB_LIVE_STEAM_PORT="27015"
 | 文档 | 路径 |
 | --- | --- |
 | 设计文档 | `doc/design.md` |
+| 生产发布（Build / Docker） | `doc/deploy.md` |
+| Docker 专题 | `doc/docker.md` |
 | 前端说明 | `Web/README.md` |
 | 实施计划 | `docs/superpowers/plans/2026-05-22-surfweb.md` |
 

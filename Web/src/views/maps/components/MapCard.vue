@@ -48,7 +48,7 @@ defineProps<{
           >
             T{{ item.tier }}
           </span>
-          <span class="font-mono text-[11px] text-px-muted">{{ item.completions }} 完赛</span>
+          <span class="font-mono text-[11px] text-px-muted">{{ item.completions }} 完成</span>
         </div>
         <h3 class="mt-3 truncate font-bold">{{ item.map }}</h3>
         <p class="mt-2 min-h-4 font-mono text-xs leading-4">

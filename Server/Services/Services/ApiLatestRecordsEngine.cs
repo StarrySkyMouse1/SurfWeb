@@ -24,10 +24,11 @@ public sealed class ApiLatestRecordsEngine(
     public async Task<IReadOnlyList<ApiLatestRecordDto>> QueryAsync(
         RealtimeRecentRecordScope scope,
         DateTimeOffset? after,
-        int limit,
         CancellationToken ct)
     {
-        limit = Math.Clamp(limit, 1, SiteLimits.MaxRecentTotal);
+        var limit = after is null
+            ? SiteLimits.ApiLatestRecordsInitialCount
+            : SiteLimits.ApiLatestRecordsCount;
         var afterUnix = after?.ToUnixTimeSeconds();
 
         var merged = await LoadMergedRecentAsync(scope, ct);

@@ -32,4 +32,7 @@ public sealed class SurfWebOptions
     public List<ServerInfoOptions> Servers { get; init; } = [];
 
     public ServerQueryOptions ServerQuery { get; init; } = new();
+
+    /// <summary>对外 REST（如最新记录 API）的 token 等。</summary>
+    public ExternalApiOptions ExternalApi { get; init; } = new();
 }

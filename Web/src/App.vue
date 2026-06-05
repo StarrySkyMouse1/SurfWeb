@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppHeader from './components/AppHeader.vue'
+import { siteTitle } from './config/site'
 </script>
 
 <template>
@@ -15,7 +16,7 @@ import AppHeader from './components/AppHeader.vue'
     <footer
       class="mt-auto border-t-2 border-px-ink py-6 text-center text-xs text-px-muted"
     >
-      <p class="font-bold">地满滑翔</p>
+      <p class="font-bold">{{ siteTitle }}</p>
       <p class="mt-0.5 font-pixel text-[9px] text-px-muted">SURF RECORD</p>
       <p class="mt-1 normal-case">网站作者 星空鼠鼠</p>
     </footer>

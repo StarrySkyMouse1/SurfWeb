@@ -1,3 +1,4 @@
+using SurfWeb.Configurations.Security;
 using SurfWeb.Core.Options;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,7 @@ public static class SurfWebServiceCollectionExtensions
 {
     public static WebApplicationBuilder AddSurfWebOptions(this WebApplicationBuilder builder)
     {
+        builder.Services.AddSingleton<IExternalApiTokenValidator, ExternalApiTokenValidator>();
         builder.Services.AddOptions<SurfWebOptions>()
             .Bind(builder.Configuration.GetSection(SurfWebOptions.SectionName))
             .PostConfigure(options =>

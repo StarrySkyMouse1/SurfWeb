@@ -16,7 +16,7 @@ const props = defineProps<{
   pageSize: number
 }>()
 
-/** 时长文案含「X天 X小时」，需宽于积分/完赛/WR 列 */
+/** 时长文案含「X天 X小时」，需宽于积分/完成/WR 列 */
 const valueColClass = computed(() =>
   props.rankingType === 'playtime' ? 'w-44' : 'w-28',
 )

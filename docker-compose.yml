@@ -1,0 +1,34 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Server/SurfWeb.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Shavit: ${SHAVIT_CONNECTION_STRING:?Set SHAVIT_CONNECTION_STRING in .env}
+      SurfWeb__ExternalApi__LatestRecordsToken: ${LATEST_RECORDS_TOKEN:-}
+      SurfWeb__MapImages__BaseUrl: ${MAP_IMAGES_BASE_URL:-https://example.com/surf-map-images/}
+      SurfWeb__MapImages__Extension: ${MAP_IMAGES_EXTENSION:-.jpg}
+      SurfWeb__Servers__0__Name: ${SURF_SERVER_NAME:-Surf Server}
+      SurfWeb__Servers__0__Address: ${SURF_SERVER_ADDRESS:-connect host.docker.internal:27015}
+      SurfWeb__Servers__0__Host: ${SURF_SERVER_HOST:-host.docker.internal}
+      SurfWeb__Servers__0__Port: ${SURF_SERVER_PORT:-27015}
+      SurfWeb__Servers__0__MaxPlayers: ${SURF_SERVER_MAX_PLAYERS:-64}
+    expose:
+      - "5240"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Web/Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_SITE_TITLE: ${VITE_SITE_TITLE:-地满滑翔}
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+    restart: unless-stopped

@@ -30,6 +30,10 @@ public enum ApiErrorCode
     [ApiErrorDescription("请求参数无效。")]
     BadRequest,
 
+    [EnumMember(Value = "unauthorized")]
+    [ApiErrorDescription("未授权，请提供有效的 token。")]
+    Unauthorized,
+
     [EnumMember(Value = "server_error")]
     [ApiErrorDescription("服务器发生错误，请稍后重试。")]
     ServerError,

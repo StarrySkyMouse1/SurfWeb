@@ -8,14 +8,18 @@ import {
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import type { ECharts } from 'echarts/core'
-import type { MapCheckpointChart } from '../../../api/client'
+import type { LeaderboardEntry, MapCheckpointChart } from '../../../api/client'
 import { formatTimeGap } from '../../../utils/format'
 import {
   MAP_CP_RANK_COLORS,
   computeCpYMax,
   fastestSecAtCp,
   formatCpAxisTick,
+  cpChartTooltipPosition,
+  cpSeriesDisplayName,
+  cpTooltipGapSeconds,
   hasCheckpointSeriesData,
+  leaderboardTimeByAuth,
 } from '../../../utils/mapCheckpointChart'
 import SkeletonBar from '../../../components/skeleton/SkeletonBar.vue'
 
@@ -24,10 +28,24 @@ echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer])
 const props = withDefaults(
   defineProps<{
     chart: MapCheckpointChart | null
+    /** 主线榜第一名用时，终点 tooltip 与右侧榜 +X.XX 对齐 */
+    leaderTime?: number | null
+    /** 当前页主线榜行，用于终点差距与玩家名 */
+    leaderboardRows?: LeaderboardEntry[]
     loading?: boolean
   }>(),
-  { loading: false },
+  { loading: false, leaderTime: null, leaderboardRows: () => [] },
 )
+
+const finishTimeByAuth = computed(() => leaderboardTimeByAuth(props.leaderboardRows))
+
+const nameByAuth = computed(() => {
+  const map = new Map<number, string>()
+  for (const row of props.leaderboardRows) {
+    if (row.playerName) map.set(row.auth, row.playerName)
+  }
+  return map
+})
 
 const rootRef = ref<HTMLElement | null>(null)
 
@@ -54,11 +72,14 @@ function render() {
   if (!instance) instance = echarts.init(el, undefined, { renderer: 'canvas' })
 
   const yMax = computeCpYMax(data)
+  const leaderTime = props.leaderTime
+  const finishTimes = finishTimeByAuth.value
+  const names = nameByAuth.value
   const series = data.series.map((p, i) => {
     const color = MAP_CP_RANK_COLORS[i] ?? MAP_CP_RANK_COLORS[9]
     const top = i === 0
     return {
-      name: p.playerName ?? String(p.auth),
+      name: cpSeriesDisplayName(p, finishTimes, names),
       type: 'line' as const,
       data: p.cumulativeSeconds,
       showSymbol: true,
@@ -113,26 +134,40 @@ function render() {
       },
       tooltip: {
         trigger: 'axis',
+        appendToBody: false,
         confine: true,
+        className: 'px-map-cp-echarts-tooltip',
+        position: cpChartTooltipPosition,
         backgroundColor: '#121212',
         borderColor: '#121212',
         borderWidth: 2,
         padding: [8, 10],
-        extraCssText: 'box-shadow:4px 4px 0 #121212;border-radius:0;',
+        extraCssText:
+          'box-shadow:4px 4px 0 #121212;border-radius:0;z-index:1;overflow:visible;',
         textStyle: { color: '#f3f1eb', fontSize: 12 },
         axisPointer: { type: 'line', lineStyle: { color: '#3d5afe', width: 2 } },
         formatter(params: unknown) {
           const list = params as { axisValue: string; dataIndex: number; value: number; seriesName: string; seriesIndex: number; color: string }[]
           if (!list?.length) return ''
           const cpIndex = list[0].dataIndex
-          const fastest = fastestSecAtCp(data.series, cpIndex)
           const title = list[0].axisValue
           const rows = [...list]
             .filter((item) => item.value != null && !Number.isNaN(item.value))
-            .sort((a, b) => a.value - b.value)
+            .sort((a, b) => {
+              const gapA = cpTooltipGapSeconds(
+                title, a.seriesIndex, cpIndex, a.value, data.series, leaderTime, finishTimes,
+              )
+              const gapB = cpTooltipGapSeconds(
+                title, b.seriesIndex, cpIndex, b.value, data.series, leaderTime, finishTimes,
+              )
+              return gapA - gapB
+            })
             .map((item) => {
               const lineColor = MAP_CP_RANK_COLORS[item.seriesIndex] ?? item.color
-              const gap = formatTimeGap(item.value - fastest)
+              const gapSec = cpTooltipGapSeconds(
+                title, item.seriesIndex, cpIndex, item.value, data.series, leaderTime, finishTimes,
+              )
+              const gap = formatTimeGap(gapSec)
               return (
                 `<div style="margin-top:4px;display:flex;align-items:center">` +
                 `<span style="display:inline-block;width:10px;height:${item.seriesIndex === 0 ? 3 : 2}px;background:${lineColor};margin-right:6px"></span>` +
@@ -168,7 +203,7 @@ onBeforeUnmount(() => {
 })
 
 watch(
-  () => [props.chart, props.loading, hasChartPlot.value] as const,
+  () => [props.chart, props.loading, hasChartPlot.value, props.leaderTime, props.leaderboardRows] as const,
   () => {
     requestAnimationFrame(render)
   },
@@ -226,7 +261,9 @@ defineExpose({ resize: onResize })
             <span class="font-pixel text-[10px]" :style="{ color: 'var(--legend-color)' }">
               {{ String(p.rank).padStart(2, '0') }}
             </span>
-            <span class="text-xs font-medium">{{ p.playerName ?? p.auth }}</span>
+            <span class="text-xs font-medium">{{
+              cpSeriesDisplayName(p, finishTimeByAuth, nameByAuth)
+            }}</span>
           </div>
         </div>
       </template>

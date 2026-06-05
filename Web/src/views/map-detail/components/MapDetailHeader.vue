@@ -46,7 +46,7 @@ defineProps<{
           WR {{ detail.worldRecordTimeFormatted ?? '—' }}
           <span v-if="detail.worldRecordPlayer"> · {{ detail.worldRecordPlayer }}</span>
         </p>
-        <p class="mt-1 text-sm text-px-muted">{{ detail.completions }} 人完赛</p>
+        <p class="mt-1 text-sm text-px-muted">{{ detail.completions }} 人完成</p>
       </div>
       <MapPreviewImage
         :map="String(detail.map)"

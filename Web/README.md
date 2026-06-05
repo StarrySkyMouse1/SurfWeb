@@ -13,17 +13,34 @@ npm run dev
 
 ## 环境变量
 
-复制 `.env.example` 为 `.env.development`（仓库已包含开发用配置）：
+| 文件 | 何时使用 |
+|------|----------|
+| `.env.development` | `npm run dev`（已提交，指向本地 API :5240） |
+| `.env.production` | `npm run build`（**模式 A 构建发布**；从 `.env.production.example` 复制，一般不提交） |
+| （无） | **Docker** 构建在 `Dockerfile` 内设置 `VITE_API_BASE_URL=/api/v1` |
+
+开发示例：
 
 ```env
 VITE_API_BASE_URL=http://localhost:5240/api/v1
+VITE_SITE_TITLE=地满滑翔
 ```
 
-须先在本机启动后端 API（见仓库根目录 `README.md`）。
+生产构建发布（同域 Nginx 反代）：
+
+```env
+VITE_API_BASE_URL=/api/v1
+VITE_SITE_TITLE=地满滑翔
+```
+
+`VITE_SITE_TITLE`：顶栏、页脚与浏览器标签标题（`{标题} · Surf Record`）；省略时默认「地满滑翔」。
+
+须先在本机启动后端 API（见仓库根目录 `README.md`）。两种生产发布方式见 **`doc/deploy.md`**。
 
 ## 构建
 
 ```powershell
+Copy-Item .env.production.example .env.production   # 首次构建发布时
 npm run build
 ```
 

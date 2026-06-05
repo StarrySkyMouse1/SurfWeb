@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { siteTitle } from '../config/site'
 
 const links = [
   { to: '/', label: '首页', code: 'HOME' },
@@ -19,14 +20,14 @@ const links = [
           >
             <img
               src="/brand-icon.png"
-              alt="地满滑翔"
+              :alt="siteTitle"
               width="40"
               height="40"
               class="h-full w-full object-cover"
             />
           </div>
           <div>
-            <p class="font-bold leading-none">地满滑翔</p>
+            <p class="font-bold leading-none">{{ siteTitle }}</p>
             <p class="px-en-subtitle mt-1">SURF RECORD</p>
           </div>
         </RouterLink>

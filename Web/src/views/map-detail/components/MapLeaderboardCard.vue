@@ -15,7 +15,7 @@ withDefaults(
     loading?: boolean
     error?: string
   }>(),
-  { pageSize: 10, loading: false, hint: '全服排行' },
+  { pageSize: 10, loading: false, hint: '排行' },
 )
 
 const page = defineModel<number>('page', { default: 1 })
