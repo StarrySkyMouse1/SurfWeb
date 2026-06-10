@@ -79,7 +79,6 @@ export function cpTooltipGapSeconds(
 
 export function cpSeriesDisplayName(
   series: MapCheckpointSeries,
-  finishTimeByAuth: ReadonlyMap<number, number>,
   nameByAuth: ReadonlyMap<number, string>,
 ): string {
   const fromRow = nameByAuth.get(series.auth)

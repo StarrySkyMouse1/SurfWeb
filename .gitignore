@@ -11,14 +11,17 @@ appsettings.local.json
 # Node
 node_modules/
 dist/
+publish/
 *.local
 
 # Env (keep .env.development for local API URL)
 .env
 .env.local
+Build/.env
 !.env.example
 !.env.development
 !Web/.env.production.example
+!Build/env.example
 
 # IDE / OS（保留 Cursor 规则，忽略本地设置）
 .cursor/*

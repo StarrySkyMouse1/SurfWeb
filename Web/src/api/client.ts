@@ -1,4 +1,27 @@
-const baseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
+const configuredBase = import.meta.env.VITE_API_BASE_URL?.trim()
+const baseUrl = configuredBase || '/api/v1'
+
+/** 相对路径直接给 fetch；避免 new URL('/api/...') 在部分环境抛 Invalid URL */
+function buildApiPath(path: string): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  const combined = `${baseUrl.replace(/\/$/, '')}${normalizedPath}`
+  if (/^https?:\/\//i.test(combined)) return combined
+  return combined.startsWith('/') ? combined : `/${combined}`
+}
+
+function appendSearchParams(
+  url: string,
+  params?: Record<string, string | number | undefined>,
+): string {
+  if (!params) return url
+  const search = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== '') search.set(k, String(v))
+  }
+  const qs = search.toString()
+  if (!qs) return url
+  return `${url}${url.includes('?') ? '&' : '?'}${qs}`
+}
 
 export interface ApiMeta {
   page: number
@@ -13,13 +36,8 @@ export interface ApiResponse<T> {
 }
 
 export async function apiGet<T>(path: string, params?: Record<string, string | number | undefined>): Promise<ApiResponse<T>> {
-  const url = new URL(`${baseUrl}${path}`)
-  if (params) {
-    for (const [k, v] of Object.entries(params)) {
-      if (v !== undefined && v !== '') url.searchParams.set(k, String(v))
-    }
-  }
-  const res = await fetch(url.toString())
+  const url = appendSearchParams(buildApiPath(path), params)
+  const res = await fetch(url)
   const raw = (await res.json()) as ApiResponse<T> & {
     Data?: T
     Meta?: ApiMeta

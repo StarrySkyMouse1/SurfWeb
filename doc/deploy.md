@@ -10,8 +10,9 @@
 | **适合** | 已有 Nginx/systemd、不想装 Docker、要精细控制主机目录 | 快速一致环境、开源一键部署、多机复现 |
 | **前端** | `npm run build` → `Web/dist/` | 镜像内 Nginx + `dist` |
 | **后端** | `dotnet publish` → 目录 + `dotnet SurfWeb.Api.dll` | 镜像内 Kestrel |
-| **配置** | `appsettings.Production.json`、环境变量、`Web/.env.production` | 根目录 `.env` + `docker-compose.yml` |
-| **详细文档** | 本文 §2 | [`doc/docker.md`](docker.md) |
+| **配置** | **`Build/.env`**（同步 Web/.env.production；API 用 appsettings 或进程环境变量） | **`Build/.env`**（compose + 同上） |
+| **入口** | `.\Build\surf.ps1 host` | `.\Build\surf.ps1` |
+| **详细文档** | 本文 §2、[`Build/README.md`](../Build/README.md) | [`Build/README.md`](../Build/README.md) |
 
 ```
                     ┌─────────────────────────────────────┐
@@ -41,14 +42,9 @@
 
 在构建机或服务器上安装 **.NET 10 SDK（构建）/ Runtime（仅运行）**、**Node.js 20+**；生产环境另需 **Nginx**（或其它反向代理）。
 
-### 2.1 后端构建
+**一键（仓库根目录）：** `.\Build\surf.ps1` → 菜单选 **宿主机**，或 `.\Build\surf.ps1 host`。
 
-```powershell
-cd Server/SurfWeb.Api
-
-# 发布到指定目录（示例）
-dotnet publish -c Release -o ../../publish/api
-```
+### 2.1 后端
 
 产物在 `publish/api/`，入口为 `dotnet SurfWeb.Api.dll`。
 
@@ -101,31 +97,18 @@ dotnet SurfWeb.Api.dll
 
 Linux 上建议用 **systemd** 托管上述命令（开机自启、`Restart=always`）。
 
-### 2.2 前端构建
+### 2.2 前端
 
-```powershell
-cd Web
-
-# 生产环境变量（首次从模板复制）
-Copy-Item .env.production.example .env.production
-# 同域反代时保持：
-#   VITE_API_BASE_URL=/api/v1
-# 前后端不同域时改为完整地址，并配置后端 SurfWeb:CorsOrigins
-
-npm ci
-npm run build
-```
-
-静态产物在 `Web/dist/`，部署到 Nginx 的 `root` 目录（如 `/var/www/surfweb`）。
+静态产物在 `Web/dist/`（`surf.ps1 host` 会按 `Web/.env.production` 构建；首次从 `.env.production.example` 生成）。
 
 **说明：** `npm run build` 会读取 `Web/.env.production`（若存在）。开发用的 `.env.development` **不会**参与生产构建。
 
 ### 2.3 宿主机 Nginx（模式 A）
 
-将 `Web/dist` 拷到服务器后，参考仓库内 **`deploy/nginx-host.example.conf`**（API 反代到本机 `127.0.0.1:5240`）。
+将 `Web/dist` 拷到服务器后，参考 **`Build/host/nginx.example.conf`**（API 反代到本机 `127.0.0.1:5240`）。
 
 ```bash
-sudo cp deploy/nginx-host.example.conf /etc/nginx/sites-available/surfweb
+sudo cp Build/host/nginx.example.conf /etc/nginx/sites-available/surfweb
 # 修改 root、server_name
 sudo ln -s /etc/nginx/sites-available/surfweb /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
@@ -144,17 +127,13 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ## 3. 模式 B：Docker
 
-使用根目录 `docker-compose.yml`，在仓库根执行：
-
 ```powershell
-Copy-Item .env.docker.example .env
-# 编辑 SHAVIT_CONNECTION_STRING 等
-docker compose up -d --build
+.\Build\surf.ps1   # 菜单选 Docker；首次会自动处理 .env
 ```
 
-默认 **http://localhost:8080**。前端构建在镜像内进行（`VITE_API_BASE_URL=/api/v1`），**不需要** `Web/.env.production`。
+默认 **http://localhost:8080**。推荐默认 **prebuilt**（本机编译）；仅 Docker 无 SDK 时用 `.\Build\surf.ps1 docker -FullImage`。
 
-**完整说明**（Linux 上传、镜像仓库、跨平台、排错）：[`doc/docker.md`](docker.md)
+详见 [`Build/README.md`](../Build/README.md)。
 
 ---
 
@@ -173,17 +152,17 @@ docker compose up -d --build
 
 | 用途 | 模式 A（Build） | 模式 B（Docker） |
 |------|-----------------|------------------|
-| API 地址（前端构建） | `Web/.env.production` | `Web/Dockerfile` / `.env` 的 `VITE_API_BASE_URL` |
-| 站点名 | `Web/.env.production` 的 `VITE_SITE_TITLE` | 根目录 `.env` 的 `VITE_SITE_TITLE` → compose `build.args` |
-| 数据库 / SurfWeb | `appsettings.Production.json` 或环境变量 | 根目录 `.env` → compose `environment` |
+| API 地址（前端构建） | `Build/.env` → 同步 `Web/.env.production` | 同上 |
+| 站点名 | `Build/.env` 的 `VITE_SITE_TITLE` | 同上 |
+| 数据库 / SurfWeb | `Build/.env` 的 `DATABASE_PROVIDER`、`SHAVIT_CONNECTION_STRING` → 宿主机 API 环境变量 | 同上 → compose |
 | 开发本地 API | `Web/.env.development` | 不使用（dev 仍 `npm run dev`） |
-| 反向代理 | 宿主机 `deploy/nginx-host.example.conf` | 容器内 `Web/nginx.conf` |
+| 反向代理 | `Build/host/nginx.example.conf` | `Build/docker/nginx.conf` |
 
 ---
 
 ## 7. Windows 宝塔面板部署（模式 A 变体）
 
-宝塔 **Windows 版** 的「**.NET 项目**」走 **IIS + ASP.NET Core Module**（界面提示「只支持 IIS」）。SurfWeb 需同时部署 **API（.NET）** 与 **前端（静态 `dist`）**，推荐 **一个域名 + 宝塔反向代理**，与 `deploy/nginx-host.example.conf` 思路一致。
+宝塔 **Windows 版** 的「**.NET 项目**」走 **IIS + ASP.NET Core Module**（界面提示「只支持 IIS」）。SurfWeb 需同时部署 **API（.NET）** 与 **前端（静态 `dist`）**，推荐 **一个域名 + 宝塔反向代理**，与 `Build/host/nginx.example.conf` 思路一致。
 
 ### 7.1 前置安装
 
@@ -201,16 +180,9 @@ docker compose up -d --build
 在开发机或服务器上（路径示例 `D:\www\surfweb\`）：
 
 ```powershell
-# 后端
-dotnet publish Server/SurfWeb.Api -c Release -o D:\www\surfweb\api
-
-# 前端（同域反代）
-cd Web
-Copy-Item .env.production.example .env.production
-# 确认：VITE_API_BASE_URL=/api/v1
-npm ci
-npm run build
-# 将 Web\dist\* 复制到 D:\www\surfweb\wwwroot\
+.\Build\surf.ps1 host
+# 再将 publish\api\* -> D:\www\surfweb\api\
+# 将 Web\dist\*     -> D:\www\surfweb\wwwroot\
 ```
 
 在 `D:\www\surfweb\api\` 放置 **`appsettings.Production.json`**（数据库、图床、Servers、token 等，勿提交 Git）。或在 IIS 站点里配置环境变量。
@@ -242,7 +214,7 @@ npm run build
 | `/hubs` | 同上（需 WebSocket 支持） |
 | `/health` | 同上 |
 
-Nginx 配置要点（与 `Web/nginx.conf` 类似）：
+Nginx 配置要点（与 `Build/docker/nginx.conf`、`Build/host/nginx.example.conf` 类似）：
 
 ```nginx
 location / {
@@ -293,6 +265,6 @@ Windows 宝塔也可安装 Docker 后直接用 **`docker compose`**（见 `doc/d
 ## 8. 相关文档
 
 - 产品与 API：`doc/design.md`  
-- Docker 专题：`doc/docker.md`  
+- Docker / 构建：`Build/README.md`（`doc/docker.md` 为跳转）  
 - 本地开发：仓库根目录 `README.md`  
 - 前端环境变量：`Web/README.md`

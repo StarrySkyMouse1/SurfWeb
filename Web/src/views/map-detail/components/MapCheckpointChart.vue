@@ -13,7 +13,6 @@ import { formatTimeGap } from '../../../utils/format'
 import {
   MAP_CP_RANK_COLORS,
   computeCpYMax,
-  fastestSecAtCp,
   formatCpAxisTick,
   cpChartTooltipPosition,
   cpSeriesDisplayName,
@@ -79,7 +78,7 @@ function render() {
     const color = MAP_CP_RANK_COLORS[i] ?? MAP_CP_RANK_COLORS[9]
     const top = i === 0
     return {
-      name: cpSeriesDisplayName(p, finishTimes, names),
+      name: cpSeriesDisplayName(p, names),
       type: 'line' as const,
       data: p.cumulativeSeconds,
       showSymbol: true,
@@ -262,7 +261,7 @@ defineExpose({ resize: onResize })
               {{ String(p.rank).padStart(2, '0') }}
             </span>
             <span class="text-xs font-medium">{{
-              cpSeriesDisplayName(p, finishTimeByAuth, nameByAuth)
+              cpSeriesDisplayName(p, nameByAuth)
             }}</span>
           </div>
         </div>

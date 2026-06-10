@@ -4,6 +4,9 @@ public sealed class SurfWebOptions
 {
     public const string SectionName = "SurfWeb";
 
+    /// <summary>成绩库提供程序：<see cref="DatabaseOptions.MySql"/>（默认）或 <see cref="DatabaseOptions.Sqlite"/>。</summary>
+    public DatabaseOptions Database { get; init; } = new();
+
     /// <summary>
     /// 默认 style 编号；绑定后由 <see cref="StyleOption.Default"/> 解析，也可在配置中直接指定。
     /// </summary>

@@ -17,7 +17,7 @@ npm run dev
 |------|----------|
 | `.env.development` | `npm run dev`（已提交，指向本地 API :5240） |
 | `.env.production` | `npm run build`（**模式 A 构建发布**；从 `.env.production.example` 复制，一般不提交） |
-| （无） | **Docker** 构建在 `Dockerfile` 内设置 `VITE_API_BASE_URL=/api/v1` |
+| （无） | **Docker full** 模式在 `Build/docker/web.full.dockerfile` 内设置 `VITE_API_BASE_URL=/api/v1` |
 
 开发示例：
 

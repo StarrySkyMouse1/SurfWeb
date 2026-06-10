@@ -2,10 +2,11 @@ services:
   api:
     build:
       context: .
-      dockerfile: Server/SurfWeb.Api/Dockerfile
+      dockerfile: Build/docker/api.${SURFWEB_BUILD_MODE:-prebuilt}.dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Shavit: ${SHAVIT_CONNECTION_STRING:?Set SHAVIT_CONNECTION_STRING in .env}
+      SurfWeb__Database__Provider: ${DATABASE_PROVIDER:-MySql}
+      ConnectionStrings__Shavit: ${SHAVIT_CONNECTION_STRING:?Set SHAVIT_CONNECTION_STRING in Build/.env}
       SurfWeb__ExternalApi__LatestRecordsToken: ${LATEST_RECORDS_TOKEN:-}
       SurfWeb__MapImages__BaseUrl: ${MAP_IMAGES_BASE_URL:-https://example.com/surf-map-images/}
       SurfWeb__MapImages__Extension: ${MAP_IMAGES_EXTENSION:-.jpg}
@@ -23,8 +24,10 @@ services:
   web:
     build:
       context: .
-      dockerfile: Web/Dockerfile
+      dockerfile: Build/docker/web.${SURFWEB_BUILD_MODE:-prebuilt}.dockerfile
       args:
+        NGINX_IMAGE: ${NGINX_IMAGE:-docker.m.daocloud.io/library/nginx:1.27-alpine}
+        NODE_IMAGE: ${NODE_IMAGE:-docker.m.daocloud.io/library/node:22-alpine}
         VITE_API_BASE_URL: /api/v1
         VITE_SITE_TITLE: ${VITE_SITE_TITLE:-地满滑翔}
     ports:

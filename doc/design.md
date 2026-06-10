@@ -25,10 +25,10 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 
 - 后端：.NET 10，**Api + 五项目**（`Configurations`、`Utils`、`Repositories`、`Services`、`SurfWeb.ServerStatus`）。
 - 前端：Vue 3 + Vite + Tailwind，目录位于 `Web/`。
-- 数据源：Shavit MySQL，只读查询。
+- 数据源：Shavit 成绩库只读查询；EF 提供程序可配置 **MySQL**（默认）或 **SQLite**（`SurfWeb:Database:Provider` + `ConnectionStrings:Shavit`）。
 - 本地 API 开发地址：`http://localhost:5240`，HTTPS 地址：`https://localhost:7182`；开发环境提供 Swagger UI（`/swagger`）。
 - 前端默认 API 地址：`http://localhost:5240/api/v1`。
-- **生产发布：** 支持 **构建发布**（`dotnet publish` + `npm run build` + 宿主机 Nginx）与 **Docker**（`docker-compose.yml`）两种方式，见 **`doc/deploy.md`**；Docker 细节见 **`doc/docker.md`**。
+- **生产发布：** 统一入口 **`Build/surf.ps1`**（无参数交互选 Docker / 宿主机并完成全流程），说明见 **`Build/README.md`**；概要见 **`doc/deploy.md`**。
 
 当前核心能力：
 - 地图列表、地图详情 v2（主线榜 + 检查点图 + 阶段/奖励双栏）、排行榜分页。
@@ -48,7 +48,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 | `SurfWeb.Core` | `Server/SurfWeb.Core/` | `Models/`、`Dtos/`、`Enums/`、`Options/`、`Constants/`（`SiteLimits`） |
 | `Configurations` | `Server/Configurations/` | `DependencyInjection/*`、CORS、`Middleware`、`Common/ApiResponse`（绑定 `SurfWeb.Core.Options`，无独立 Options 项目内目录） |
 | `Utils` | `Server/Utils/` | 无状态工具与读侧缓存：`TimeFormatter`、`Caching/`（`CacheKeys`、`IQueryCache`、`QueryCache` 等）、服务器地址/地图名解析；`AddSurfWebQueryCache` |
-| `Repositories` | `Server/Repositories/` | `ShavitDbContext`、`IBaseRepository<T>`、`AddSurfWebRepositories` |
+| `Repositories` | `Server/Repositories/` | `ShavitDbContext`、`IBaseRepository<T>`、`AddSurfWebRepositories`（MySql / Sqlite 按配置切换） |
 | `Services` | `Server/Services/` | `IServices/*`、`Services/*`（含 `IRealtimeRecentRecordsService`、`IApiService` 直查库）、`AddSurfWeb` / `AddSurfWebData` |
 | `SurfWeb.ServerStatus` | `Server/SurfWeb.ServerStatus/` | `IServices/`、`Models/`、`Services/`、`Steam/`；**不**引用 `Repositories`，Shavit 补充经 `IMapService` / `IUserService` |
 | `SurfWeb.Realtime` | `Server/SurfWeb.Realtime/` | SignalR `RecordsHub`、`RealtimeRecentRecordsPushWorker` |
@@ -268,7 +268,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
 - **组件路径：** `views/home/components/`（`HomeRankingTable`、`HomeRecentTable`、`RankingFilter`、`FilterSplitChip`（完成/WR/最新记录分栏芯片 + 范围气泡）、`RecentRecordFilter`）、`ChipFilter` / 筛选条共用 `.px-filter-chip-row`（同行垂直居中，选中无 `translate` 避免高低不齐）、`views/maps/components/`（`MapCard`、`TierFilter`）、`views/map-detail/components/`（`MapDetailHeader`、`MapDetailCategoryTabs`、`MapDetailMainPanel`、`MapDetailStageBonusPanel`、`MapCheckpointChart`、`MapLeaderboardCard`、`LeaderboardTable`）、`views/players/components/`（`PlayerPassportCard`、`PlayerRecordFilters`、`PlayerRecordsTable`、`PlayerChartsPanel`）、`views/servers/components/`（`ServerInfoPanel`）。地图详情样式：`styles/pages/map-detail.css`。
 - **单页应用（SPA）：** `vue-router` + `createWebHistory()`，导航统一用 `RouterLink`，仅 `joinServer` 使用 `steam://` 外链；`App.vue` 内 `RouterView` 带淡入淡出过渡；`scrollBehavior` 切换路由时平滑滚到顶部（浏览器后退恢复原滚动位置）。
 - 全局布局：`App.vue` 使用 `min-h-screen` + `flex-col`，`main` 占满剩余高度，页脚 `border-t` 在内容较少时仍贴齐视口底部。
-- `Web/.env.development` 默认：`VITE_API_BASE_URL=http://localhost:5240/api/v1`、`VITE_SITE_TITLE=地满滑翔`
+- `Web/.env.development` 默认：`VITE_API_BASE_URL=http://localhost:5240/api/v1`、`VITE_SITE_TITLE=地满滑翔`；生产/Docker 同域反代用相对路径 `/api/v1`（`client.ts` 以 `window.location.origin` 解析，避免 `new URL` 报错）
 - 本地前端开发端口默认由 Vite 管理，后端 CORS 允许 `localhost:5173` 与 `127.0.0.1:5173`。
 
 ---
@@ -324,7 +324,8 @@ HTTP 请求
 ### 8.1 后端配置
 
 `Server/SurfWeb.Api/appsettings.json` 中只保留可公开的默认配置与模板占位配置：
-- `ConnectionStrings:Shavit`
+- `SurfWeb:Database:Provider`：`MySql`（默认）或 `Sqlite`
+- `ConnectionStrings:Shavit`：MySQL 连接串，或 SQLite 的 `Data Source=…`（须与 Shavit 表结构兼容的 `.db`）
 - `SurfWeb:CorsOrigins`
 - `SurfWeb:MinResponseDelaySeconds`（读 API 最小响应秒数，默认 `0.2`）
 - `SurfWeb:Cache`（`MapsMinutes`、`LeaderboardSeconds`；`RankingsRefreshMinutes`、`RecentRefreshMinutes` 默认 `1`）
@@ -361,10 +362,12 @@ HTTP 请求
 
 | 模式 | 说明 | 文档 |
 |------|------|------|
-| **A · 构建发布** | `dotnet publish` → `publish/api`；`npm run build`（`Web/.env.production`）→ `Web/dist`；宿主机 Nginx / **Windows 宝塔（IIS + 反代）** 反代 `/api`（示例 `deploy/nginx-host.example.conf`） | [`doc/deploy.md`](deploy.md) §2、§7 |
-| **B · Docker** | 根目录 `docker-compose.yml`（`web` + `api`，前端不打进 API 镜像）；配置 `.env.docker.example` → `.env` | [`doc/docker.md`](docker.md) |
+| **A · 构建发布** | `Build/surf.ps1 host`；配置 **`Build/.env`** | [`Build/README.md`](../Build/README.md)、[`doc/deploy.md`](deploy.md) |
+| **B · Docker** | `Build/surf.ps1`；配置 **`Build/.env`** | [`Build/README.md`](../Build/README.md) |
 
-前端环境变量：开发 `Web/.env.development`；模式 A 生产 `Web/.env.production`（模板 `Web/.env.production.example`）；模式 B 在 `Web/Dockerfile` / 根目录 `.env` 的 `VITE_SITE_TITLE` 与 `VITE_API_BASE_URL=/api/v1`。
+前端环境变量：开发 `Web/.env.development`；**发布构建**由 `Build/.env` 同步生成 `Web/.env.production`（`VITE_API_BASE_URL=/api/v1`）。部署配置**仅** `Build/.env`；`surf.ps1` 首次运行若无该文件则从 `Build/env.example` 自动创建，交互模式下打开记事本，保存后同轮继续部署。
+
+Docker **web** 基础镜像默认经 DaoCloud 拉取 `nginx` / `node`（`Build/.env` 的 `NGINX_IMAGE`、`NODE_IMAGE`，见 `Build/env.example`）；`api` 仍为 `mcr.microsoft.com`。
 
 ---
 

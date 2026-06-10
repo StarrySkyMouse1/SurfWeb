@@ -4,6 +4,8 @@
 **/obj
 **/node_modules
 **/dist
+!Web/dist/**
+!publish/api/**
 **/.vs
 **/*.user
 **/*.suo
@@ -13,7 +15,8 @@ Web/.env.development
 Web/.env
 .env
 .env.*
-!.env.docker.example
+Build/.env
+!Build/env.example
 Python/
 docs/design-previews/
 agent-transcripts/
