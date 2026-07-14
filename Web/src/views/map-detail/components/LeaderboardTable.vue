@@ -34,95 +34,159 @@ function gapSeconds(row: LeaderboardEntry): number | null {
 </script>
 
 <template>
-  <div :class="[props.bare ? '' : 'px-panel', 'overflow-x-auto']">
-    <table class="w-full min-w-[560px] table-fixed text-left text-sm" :aria-busy="loading">
-      <colgroup>
-        <col class="w-12" />
-        <col />
-        <col class="w-36" />
-        <col class="w-24" />
-        <col class="w-40" />
-      </colgroup>
-      <thead class="px-table-head">
-        <tr>
-          <th class="px-rank-cell py-2">#</th>
-          <th class="px-table-head-cell text-left">玩家</th>
-          <th class="px-table-head-cell text-right">时间</th>
-          <th class="px-table-head-cell text-right">同步</th>
-          <th class="px-table-head-cell text-right">日期</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="(row, index) in rowSlots"
-          :key="`lb-row-${index}`"
-          :class="
-            loading || !row
-              ? 'px-table-row-empty'
-              : ['px-table-row', row.rank === 1 && 'font-semibold']
-          "
-        >
-          <template v-if="loading">
-            <td class="px-rank-cell px-table-data-cell">
-              <div class="px-table-cell-content">
-                <SkeletonBar class="mx-auto h-4 w-6 shrink-0" />
-              </div>
-            </td>
-            <td class="px-table-data-cell">
-              <div class="px-table-cell-content">
-                <SkeletonBar class="h-4 w-28 max-w-full shrink-0" />
-              </div>
-            </td>
-            <td class="px-table-data-cell text-right">
-              <div class="px-table-cell-content">
-                <SkeletonBar class="ml-auto h-4 w-[5.5rem] shrink-0" />
-              </div>
-            </td>
-            <td class="px-table-data-cell text-right">
-              <div class="px-table-cell-content">
-                <SkeletonBar class="ml-auto h-4 w-10 shrink-0" />
-              </div>
-            </td>
-            <td class="px-table-data-cell text-right">
-              <div class="px-table-cell-content">
-                <SkeletonBar class="ml-auto h-4 w-24 shrink-0" />
-              </div>
-            </td>
-          </template>
-          <template v-else-if="row">
-            <td
-              :class="[
-                'px-rank-cell px-table-data-cell',
-                row.rank === 1 && 'text-px-accent',
-              ]"
-            >
-              {{ String(row.rank).padStart(2, '0') }}
-            </td>
-            <td class="px-table-data-cell">
-              <RouterLink
-                :to="`/players/${row.auth}`"
-                class="font-semibold underline-offset-2 hover:underline"
-                @click.stop
+  <div :class="[props.bare ? '' : 'px-panel', 'px-leaderboard']">
+    <!-- 桌面：表格 -->
+    <div class="px-leaderboard-desktop overflow-x-auto">
+      <table class="w-full min-w-[560px] table-fixed text-left text-sm" :aria-busy="loading">
+        <colgroup>
+          <col class="w-12" />
+          <col />
+          <col class="w-36" />
+          <col class="w-24" />
+          <col class="w-40" />
+        </colgroup>
+        <thead class="px-table-head">
+          <tr>
+            <th class="px-rank-cell py-2">#</th>
+            <th class="px-table-head-cell text-left">玩家</th>
+            <th class="px-table-head-cell text-right">时间</th>
+            <th class="px-table-head-cell text-right">同步</th>
+            <th class="px-table-head-cell text-right">日期</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(row, index) in rowSlots"
+            :key="`lb-row-${index}`"
+            :class="
+              loading || !row
+                ? 'px-table-row-empty'
+                : ['px-table-row', row.rank === 1 && 'font-semibold']
+            "
+          >
+            <template v-if="loading">
+              <td class="px-rank-cell px-table-data-cell">
+                <div class="px-table-cell-content">
+                  <SkeletonBar class="mx-auto h-4 w-6 shrink-0" />
+                </div>
+              </td>
+              <td class="px-table-data-cell">
+                <div class="px-table-cell-content">
+                  <SkeletonBar class="h-4 w-28 max-w-full shrink-0" />
+                </div>
+              </td>
+              <td class="px-table-data-cell text-right">
+                <div class="px-table-cell-content">
+                  <SkeletonBar class="ml-auto h-4 w-[5.5rem] shrink-0" />
+                </div>
+              </td>
+              <td class="px-table-data-cell text-right">
+                <div class="px-table-cell-content">
+                  <SkeletonBar class="ml-auto h-4 w-10 shrink-0" />
+                </div>
+              </td>
+              <td class="px-table-data-cell text-right">
+                <div class="px-table-cell-content">
+                  <SkeletonBar class="ml-auto h-4 w-24 shrink-0" />
+                </div>
+              </td>
+            </template>
+            <template v-else-if="row">
+              <td
+                :class="[
+                  'px-rank-cell px-table-data-cell',
+                  row.rank === 1 && 'text-px-accent',
+                ]"
               >
-                {{ row.playerName ?? row.auth }}
-              </RouterLink>
-            </td>
-            <td class="px-table-data-cell text-right font-mono">
+                {{ String(row.rank).padStart(2, '0') }}
+              </td>
+              <td class="px-table-data-cell">
+                <RouterLink
+                  :to="`/players/${row.auth}`"
+                  class="font-semibold underline-offset-2 hover:underline"
+                  @click.stop
+                >
+                  {{ row.playerName ?? row.auth }}
+                </RouterLink>
+              </td>
+              <td class="px-table-data-cell text-right font-mono">
+                <span>{{ row.timeFormatted }}</span>
+                <span v-if="gapSeconds(row) != null" class="ml-2 text-xs opacity-70">
+                  {{ formatTimeGap(gapSeconds(row)!) }}
+                </span>
+              </td>
+              <td class="px-table-data-cell text-right font-mono">
+                {{ row.sync != null ? `${Math.round(row.sync)}%` : '—' }}
+              </td>
+              <td class="px-table-data-cell text-right font-mono text-xs">
+                {{ row.date ? formatRecordDate(row.date) : '—' }}
+              </td>
+            </template>
+            <td v-else colspan="5" class="px-table-row-empty" aria-hidden="true">&nbsp;</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 手机：卡片列表，无横向滚动（对齐玩家记录页） -->
+    <div class="px-leaderboard-mobile" :aria-busy="loading">
+      <div class="px-leaderboard-mobile-head">
+        <span># 玩家</span>
+        <span>时间</span>
+      </div>
+      <template v-for="(row, index) in rowSlots" :key="`lb-m-${index}`">
+        <div
+          v-if="loading"
+          class="px-leaderboard-card px-leaderboard-card--skeleton"
+          aria-hidden="true"
+        >
+          <div class="px-leaderboard-card-body">
+            <div class="px-leaderboard-card-main">
+              <SkeletonBar class="h-4 w-6 shrink-0" />
+              <SkeletonBar class="h-4 w-24 max-w-full" />
+            </div>
+            <SkeletonBar class="mt-1.5 h-3 w-16" />
+          </div>
+          <div class="px-leaderboard-card-meta">
+            <SkeletonBar class="ml-auto h-4 w-[5.5rem]" />
+            <SkeletonBar class="mt-1 ml-auto h-3 w-24" />
+          </div>
+        </div>
+        <RouterLink
+          v-else-if="row"
+          :to="`/players/${row.auth}`"
+          class="px-leaderboard-card"
+          :class="{ 'px-leaderboard-card--top': row.rank === 1 }"
+        >
+          <div class="px-leaderboard-card-body">
+            <div class="px-leaderboard-card-main">
+              <span
+                class="px-leaderboard-card-rank"
+                :class="{ 'text-px-accent': row.rank === 1 }"
+              >{{ String(row.rank).padStart(2, '0') }}</span>
+              <span class="px-leaderboard-card-name">{{ row.playerName ?? row.auth }}</span>
+            </div>
+            <div class="px-leaderboard-card-sync">
+              <template v-if="row.sync != null"
+                >{{ Math.round(row.sync) }}%<span class="px-leaderboard-card-sync-unit">sync</span></template
+              >
+              <template v-else>—<span class="px-leaderboard-card-sync-unit">sync</span></template>
+            </div>
+          </div>
+          <div class="px-leaderboard-card-meta">
+            <div class="px-leaderboard-card-time">
               <span>{{ row.timeFormatted }}</span>
-              <span v-if="gapSeconds(row) != null" class="ml-2 text-xs opacity-70">
-                {{ formatTimeGap(gapSeconds(row)!) }}
-              </span>
-            </td>
-            <td class="px-table-data-cell text-right font-mono">
-              {{ row.sync != null ? `${Math.round(row.sync)}%` : '—' }}
-            </td>
-            <td class="px-table-data-cell text-right font-mono text-xs">
+              <span v-if="gapSeconds(row) != null" class="px-leaderboard-card-gap">{{
+                formatTimeGap(gapSeconds(row)!)
+              }}</span>
+            </div>
+            <div class="px-leaderboard-card-date">
               {{ row.date ? formatRecordDate(row.date) : '—' }}
-            </td>
-          </template>
-          <td v-else colspan="5" class="px-table-row-empty" aria-hidden="true">&nbsp;</td>
-        </tr>
-      </tbody>
-    </table>
+            </div>
+          </div>
+        </RouterLink>
+        <div v-else class="px-leaderboard-card px-leaderboard-card--empty" aria-hidden="true" />
+      </template>
+    </div>
   </div>
 </template>

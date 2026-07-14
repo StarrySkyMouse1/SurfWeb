@@ -144,29 +144,11 @@ const showDate = computed(() => columns.value.some((c) => c.key === 'date'))
 const showTrack = computed(() => columns.value.some((c) => c.key === 'track'))
 const showStage = computed(() => columns.value.some((c) => c.key === 'stage'))
 
-function mobileMetaLine(row: PlayerRecord): string {
-  const parts: string[] = []
-  if (
-    isRecent.value &&
-    (isRecordWr(row) || shouldShowGapFromWr(row))
-  ) {
-    const gap = isRecordWr(row) ? 0 : row.gapFromWr!
-    parts.push(gap >= 10 ? `+${Math.round(gap)}` : formatTimeGap(gap, 3))
-  }
-  if (showSync.value) {
-    parts.push(row.sync != null ? `${Math.round(row.sync)}%` : '—')
-  }
-  if (showDate.value && row.date) {
-    const d = new Date(row.date)
-    if (!Number.isNaN(d.getTime())) {
-      const mm = String(d.getMonth() + 1).padStart(2, '0')
-      const dd = String(d.getDate()).padStart(2, '0')
-      parts.push(`${mm}/${dd}`)
-    }
-  } else if (showDate.value) {
-    parts.push('—')
-  }
-  return parts.join(' · ')
+function mobileGapText(row: PlayerRecord): string | null {
+  if (!isRecent.value) return null
+  if (!(isRecordWr(row) || shouldShowGapFromWr(row))) return null
+  const gap = isRecordWr(row) ? 0 : row.gapFromWr!
+  return formatTimeGap(gap, 3)
 }
 </script>
 
@@ -333,14 +315,13 @@ function mobileMetaLine(row: PlayerRecord): string {
     <div class="px-player-records-mobile" :aria-busy="loading">
       <template v-for="index in rowIndices" :key="loading ? `rec-m-sk-${index}` : rows[index]?.map ?? `rec-m-empty-${index}`">
         <div v-if="loading" class="px-player-record-card px-player-record-card--skeleton" aria-hidden="true">
-          <span class="px-player-record-card-thumb animate-pulse bg-neutral-200" />
           <div class="px-player-record-card-body">
             <SkeletonBar class="h-4 w-3/4 max-w-full" />
-            <SkeletonBar class="mt-2 h-3 w-16" />
+            <SkeletonBar class="mt-2 h-3 w-20" />
           </div>
           <div class="px-player-record-card-meta">
-            <SkeletonBar class="ml-auto h-4 w-14" />
-            <SkeletonBar class="mt-1 ml-auto h-3 w-20" />
+            <SkeletonBar class="ml-auto h-4 w-[5.5rem]" />
+            <SkeletonBar class="mt-1 ml-auto h-3 w-24" />
           </div>
         </div>
         <RouterLink
@@ -348,11 +329,6 @@ function mobileMetaLine(row: PlayerRecord): string {
           :to="`/maps/${encodeURIComponent(rows[index]!.map)}`"
           class="px-player-record-card"
         >
-          <MapPreviewImage
-            :map="rows[index]!.map"
-            :image-config="mapImageConfig"
-            variant="thumb"
-          />
           <div class="px-player-record-card-body">
             <span class="px-player-record-card-name">{{ rows[index]!.map }}</span>
             <div class="px-player-record-card-tags">
@@ -360,6 +336,12 @@ function mobileMetaLine(row: PlayerRecord): string {
                 v-if="rows[index]!.tier != null"
                 :class="['px-chip shrink-0', tierChipColorClass(rows[index]!.tier!)]"
               >T{{ rows[index]!.tier }}</span>
+              <span v-if="showSync" class="px-player-record-card-sync">
+                <template v-if="rows[index]!.sync != null"
+                  >{{ Math.round(rows[index]!.sync!) }}%<span class="px-player-record-card-sync-unit">sync</span></template
+                >
+                <template v-else>—<span class="px-player-record-card-sync-unit">sync</span></template>
+              </span>
               <span v-if="showStage" class="px-player-record-card-kind">{{
                 stageLabel(rows[index]!.stage)
               }}</span>
@@ -368,12 +350,15 @@ function mobileMetaLine(row: PlayerRecord): string {
               }}</span>
             </div>
           </div>
-          <div v-if="showTime || showSync || showDate" class="px-player-record-card-meta">
+          <div v-if="showTime || showDate" class="px-player-record-card-meta">
             <div v-if="showTime" class="px-player-record-card-time">
-              {{ rows[index]!.timeFormatted ?? '—' }}
+              <span>{{ rows[index]!.timeFormatted ?? '—' }}</span>
+              <span v-if="mobileGapText(rows[index]!)" class="px-player-record-card-gap">{{
+                mobileGapText(rows[index]!)
+              }}</span>
             </div>
-            <div v-if="mobileMetaLine(rows[index]!)" class="px-player-record-card-sub">
-              {{ mobileMetaLine(rows[index]!) }}
+            <div v-if="showDate" class="px-player-record-card-sub">
+              {{ rows[index]!.date ? formatRecordDate(rows[index]!.date) : '—' }}
             </div>
           </div>
         </RouterLink>

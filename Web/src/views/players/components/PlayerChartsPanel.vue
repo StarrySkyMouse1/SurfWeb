@@ -20,6 +20,12 @@ const isMonthly = computed(() =>
 )
 
 const isTierDense = computed(() => (props.charts?.tierBars.length ?? 0) >= 9)
+
+/** 窄屏月份轴：去掉「月」字，避免 10/11/12 互相挤压 */
+function axisLabel(label: string, compact: boolean): string {
+  if (!compact) return label
+  return label.replace(/月$/u, '')
+}
 </script>
 
 <template>
@@ -59,7 +65,10 @@ const isTierDense = computed(() => (props.charts?.tierBars.length ?? 0) >= 9)
                   :style="{ height: `${bar.heightPct}%` }"
                 />
               </div>
-              <span class="font-pixel text-[9px] text-px-muted">{{ bar.label }}</span>
+              <span class="px-chart-axis-label font-pixel text-px-muted">
+                <span class="px-chart-axis-label-full">{{ bar.label }}</span>
+                <span class="px-chart-axis-label-short">{{ axisLabel(bar.label, true) }}</span>
+              </span>
             </div>
           </div>
           <div
@@ -94,7 +103,10 @@ const isTierDense = computed(() => (props.charts?.tierBars.length ?? 0) >= 9)
                   :style="{ height: `${bar.heightPct}%` }"
                 />
               </div>
-              <span class="font-pixel text-[9px] text-px-muted">{{ bar.label }}</span>
+              <span class="px-chart-axis-label font-pixel text-px-muted">
+                <span class="px-chart-axis-label-full">{{ bar.label }}</span>
+                <span class="px-chart-axis-label-short">{{ axisLabel(bar.label, true) }}</span>
+              </span>
             </div>
           </div>
           <p v-if="charts.topTierLabel" class="mt-2 text-[10px] text-px-muted">

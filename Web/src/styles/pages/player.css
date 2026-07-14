@@ -164,7 +164,7 @@
   }
 
   .px-player-record-card {
-    @apply flex min-w-0 items-stretch gap-1.5 border-t border-px-ink bg-px-surface no-underline text-inherit;
+    @apply flex min-w-0 items-stretch gap-2 border-t border-px-ink bg-px-surface px-3 no-underline text-inherit;
     min-height: 3.5rem;
   }
 
@@ -176,12 +176,10 @@
     @apply bg-px-paper;
   }
 
-  .px-player-record-card .px-map-thumb {
-    @apply h-14 w-16 shrink-0;
-  }
-
+  /** 手机卡片不展示地图缩略图 */
+  .px-player-record-card .px-map-thumb,
   .px-player-record-card-thumb {
-    @apply h-14 w-16 shrink-0;
+    @apply hidden;
   }
 
   .px-player-record-card-body {
@@ -200,17 +198,34 @@
     @apply truncate text-xs leading-none text-px-muted;
   }
 
-  /** 右侧固定两行：成绩 / 差值·同步·日期 */
+  .px-player-record-card-sync {
+    @apply shrink-0 self-center text-xs leading-none tracking-normal text-px-muted whitespace-nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .px-player-record-card-sync-unit {
+    margin-left: 0.125rem;
+  }
+
+  /**
+   * 右侧两行（对齐首页最新记录）：
+   * 1) 成绩 + 差值（同行）
+   * 2) 完整日期时间
+   */
   .px-player-record-card-meta {
-    @apply flex w-[6.75rem] shrink-0 flex-col items-end justify-center gap-0.5 py-2 pr-2.5 pl-1 text-right;
+    @apply flex max-w-[48%] shrink-0 flex-col items-end justify-center gap-0.5 py-2 pl-1 text-right;
   }
 
   .px-player-record-card-time {
-    @apply max-w-full truncate font-mono text-sm font-bold leading-tight whitespace-nowrap;
+    @apply flex max-w-full items-baseline justify-end gap-1 font-mono text-sm font-bold leading-tight whitespace-nowrap;
+  }
+
+  .px-player-record-card-gap {
+    @apply text-xs font-normal text-px-muted;
   }
 
   .px-player-record-card-sub {
-    @apply block max-w-full truncate font-mono text-[10px] leading-tight text-px-muted whitespace-nowrap;
+    @apply block max-w-full truncate font-mono text-[11px] leading-tight text-px-muted whitespace-nowrap;
   }
 
   .px-player-record-card--skeleton {

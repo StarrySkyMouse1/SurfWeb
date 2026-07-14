@@ -60,4 +60,52 @@
   .px-chart-bar-value.is-muted {
     @apply text-px-muted;
   }
+
+  .px-chart-axis-label {
+    @apply max-w-full truncate text-center text-[9px] leading-none;
+  }
+
+  .px-chart-axis-label-short {
+    @apply hidden;
+  }
+
+  /** 窄屏：12 个月柱图改用短标签（1–12），避免「10月」等互相重叠 */
+  @media (max-width: 480px) {
+    .px-chart-panel-body {
+      @apply gap-2 p-2 pb-3;
+    }
+
+    .px-chart-block {
+      @apply p-2 pb-2.5;
+    }
+
+    .px-chart-bars--months {
+      @apply gap-px;
+    }
+
+    .px-chart-bars--months .px-chart-bar-cell {
+      max-width: none;
+      @apply max-w-full min-w-0;
+    }
+
+    .px-chart-bars--months .px-chart-bar {
+      @apply min-w-0;
+    }
+
+    .px-chart-bars--months .px-chart-bar-value {
+      @apply text-[8px];
+    }
+
+    .px-chart-bars--months .px-chart-axis-label {
+      @apply text-[8px];
+    }
+
+    .px-chart-bars--months .px-chart-axis-label-full {
+      @apply hidden;
+    }
+
+    .px-chart-bars--months .px-chart-axis-label-short {
+      @apply inline;
+    }
+  }
 }
