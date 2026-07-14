@@ -22,16 +22,11 @@ export function formatTimeGap(deltaSeconds: number, decimals = 2): string {
   return `+${d.toFixed(decimals)}`
 }
 
-/** Shavit `playtime`（秒）→ `X天 X小时`（不显示分/秒） */
+/** Shavit `playtime`（秒）→ 总小时数（向下取整，不显示天/分/秒） */
 export function formatPlaytime(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds))
-  const days = Math.floor(s / 86400)
-  const hours = Math.floor((s % 86400) / 3600)
-
-  const parts: string[] = []
-  if (days > 0) parts.push(`${days}天`)
-  if (hours > 0 || parts.length === 0) parts.push(`${hours}小时`)
-  return parts.join(' ')
+  const hours = Math.floor(s / 3600)
+  return `${hours}小时`
 }
 
 /** 该条成绩是否为当前地图/赛道 WR */

@@ -54,6 +54,39 @@
     display: none;
   }
 
+  /** 分页表：需要时显示横向滚动条（玩家记录表等） */
+  .px-paged-table-wrap--scroll-x {
+    /* 不限制 max-height，避免横向滚动条占位后再挤出纵向滚动 */
+    max-height: none;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-px-ink) rgb(229 229 229);
+  }
+
+  .px-paged-table-wrap--scroll-x::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .px-paged-table-wrap--scroll-x::-webkit-scrollbar:horizontal {
+    display: block;
+    height: 0.5rem;
+  }
+
+  .px-paged-table-wrap--scroll-x::-webkit-scrollbar:vertical {
+    display: none;
+    width: 0;
+  }
+
+  .px-paged-table-wrap--scroll-x::-webkit-scrollbar-track {
+    @apply bg-neutral-200;
+  }
+
+  .px-paged-table-wrap--scroll-x::-webkit-scrollbar-thumb {
+    @apply rounded-sm bg-px-ink;
+  }
+
   .px-paged-table-wrap thead tr {
     height: var(--px-paged-head-h);
   }

@@ -33,17 +33,17 @@ function trackLabel(row: RecentRecord): string {
 
 <template>
   <div class="px-home-list-table-wrap">
-    <table :aria-busy="loading">
+    <table class="px-home-recent-table" :aria-busy="loading">
       <colgroup>
-        <col class="w-[42%]" />
-        <col />
-        <col class="w-40" />
+        <col class="px-home-recent-col-map" />
+        <col class="px-home-recent-col-player" />
+        <col class="px-home-recent-col-time" />
       </colgroup>
       <thead class="px-table-head">
         <tr>
           <th class="px-table-head-cell text-left">地图</th>
-          <th class="px-table-head-cell text-left">玩家</th>
-          <th class="px-table-head-cell text-right">时间</th>
+          <th class="px-table-head-cell px-home-recent-player-col text-left">玩家</th>
+          <th class="px-table-head-cell px-home-recent-time-col text-right">时间</th>
         </tr>
       </thead>
       <tbody>
@@ -54,48 +54,49 @@ function trackLabel(row: RecentRecord): string {
         >
           <template v-if="loading">
             <td class="px-home-recent-map-cell">
-              <div class="flex min-h-14 w-full items-stretch gap-2 pr-3 pl-0">
+              <div class="px-home-recent-map-link">
                 <span
                   class="px-home-recent-map-thumb-skeleton h-14 w-20 shrink-0 animate-pulse bg-neutral-200"
                   aria-hidden="true"
                 />
-                <div class="flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-2 pr-3">
+                <div class="px-home-recent-map-text">
                   <SkeletonBar class="h-4 min-w-0 w-full max-w-full shrink" />
-                  <div class="px-home-recent-map-track" aria-hidden="true">
-                    <span
-                      class="box-border inline-block h-[1.125rem] w-7 shrink-0 animate-pulse border-2 border-px-ink bg-neutral-200"
-                    />
-                    <SkeletonBar class="h-3 w-8 shrink-0" />
+                  <div class="px-home-recent-map-sub" aria-hidden="true">
+                    <div class="px-home-recent-map-track">
+                      <span
+                        class="box-border inline-block h-[1.125rem] w-7 shrink-0 animate-pulse border-2 border-px-ink bg-neutral-200"
+                      />
+                      <SkeletonBar class="h-3 w-8 shrink-0" />
+                    </div>
+                    <SkeletonBar class="px-home-recent-map-player-skeleton h-3 w-16 max-w-full shrink" />
                   </div>
                 </div>
               </div>
             </td>
-            <td class="px-home-list-cell">
-              <div class="px-table-cell-content">
-                <SkeletonBar class="h-4 w-24 max-w-full shrink-0" />
-              </div>
+            <td class="px-home-list-cell px-home-recent-player-col">
+              <SkeletonBar class="h-4 w-24 max-w-full shrink-0" />
             </td>
-            <td class="px-home-list-cell text-right">
-              <div class="px-table-cell-content">
-                <SkeletonBar class="ml-auto h-4 w-[5.5rem] shrink-0" />
-                <SkeletonBar class="mt-0.5 ml-auto h-3 w-24 shrink-0" />
-              </div>
+            <td class="px-home-list-cell px-home-recent-time-col text-right">
+              <SkeletonBar class="ml-auto h-4 w-[5.5rem] shrink-0" />
+              <SkeletonBar class="mt-0.5 ml-auto h-3 w-24 shrink-0" />
             </td>
           </template>
           <template v-else-if="rows[index]">
             <td class="px-home-recent-map-cell">
-              <RouterLink
-                :to="`/maps/${encodeURIComponent(rows[index]!.map)}`"
-                class="px-home-recent-map-link"
-                :title="rows[index]!.map"
-              >
-                <MapPreviewImage
-                  :map="rows[index]!.map"
-                  :image-config="mapImageConfig"
-                  variant="thumb"
-                />
-                <span class="px-home-recent-map-text">
+              <div class="px-home-recent-map-link">
+                <RouterLink
+                  :to="`/maps/${encodeURIComponent(rows[index]!.map)}`"
+                  class="px-home-recent-map-main"
+                  :title="rows[index]!.map"
+                >
+                  <MapPreviewImage
+                    :map="rows[index]!.map"
+                    :image-config="mapImageConfig"
+                    variant="thumb"
+                  />
                   <span class="px-home-recent-map-name">{{ rows[index]!.map }}</span>
+                </RouterLink>
+                <div class="px-home-recent-map-sub">
                   <span class="px-home-recent-map-track">
                     <span class="px-home-recent-map-track-tier">
                       <span
@@ -112,19 +113,25 @@ function trackLabel(row: RecentRecord): string {
                       trackLabel(rows[index]!)
                     }}</span>
                   </span>
-                </span>
-              </RouterLink>
+                  <RouterLink
+                    :to="`/players/${rows[index]!.auth}`"
+                    class="px-home-recent-map-player"
+                  >
+                    {{ rows[index]!.playerName ?? rows[index]!.auth }}
+                  </RouterLink>
+                </div>
+              </div>
             </td>
-            <td class="px-home-list-cell">
+            <td class="px-home-list-cell px-home-recent-player-col">
               <RouterLink
                 :to="`/players/${rows[index]!.auth}`"
-                class="font-bold leading-tight hover:underline"
+                class="block min-w-0 truncate font-bold leading-tight hover:underline"
               >
                 {{ rows[index]!.playerName ?? rows[index]!.auth }}
               </RouterLink>
             </td>
-            <td class="px-home-list-cell text-right">
-              <div class="font-mono font-bold leading-tight">
+            <td class="px-home-list-cell px-home-recent-time-col text-right">
+              <div class="px-home-recent-time-main font-mono font-bold leading-tight whitespace-nowrap">
                 {{ rows[index]!.timeFormatted }}
                 <span
                   v-if="isRecordWr(rows[index]!) || shouldShowGapFromWr(rows[index]!)"
@@ -140,7 +147,7 @@ function trackLabel(row: RecentRecord): string {
               </div>
               <div
                 v-if="rows[index]!.date"
-                class="font-mono text-xs leading-tight opacity-60"
+                class="px-home-recent-time-date font-mono text-xs leading-tight whitespace-nowrap opacity-60"
               >
                 {{ formatRecordDate(rows[index]!.date) }}
               </div>

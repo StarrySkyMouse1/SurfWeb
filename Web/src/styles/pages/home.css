@@ -14,24 +14,67 @@
   }
 
   .px-home-recent-map-link {
-    @apply flex h-14 max-h-14 w-full items-stretch gap-2 overflow-hidden pr-3 pl-0 hover:opacity-90;
+    @apply flex h-14 max-h-14 w-full min-w-0 flex-col justify-center gap-0.5 overflow-hidden py-1 pr-3 pl-3;
+  }
+
+  .px-home-recent-map-main {
+    @apply flex min-w-0 items-center gap-2 overflow-hidden hover:opacity-90;
+  }
+
+  .px-home-recent-map-sub {
+    @apply flex min-w-0 items-center gap-1.5 overflow-hidden;
+  }
+
+  .px-home-recent-col-map {
+    width: 36%;
+  }
+
+  .px-home-recent-col-player {
+    width: auto;
+  }
+
+  .px-home-recent-col-time {
+    width: 9.5rem;
+  }
+
+  /** 默认无缩略图（中等宽度三列）；宽面板内再显示 */
+  .px-home-recent-map-link .px-map-thumb,
+  .px-home-recent-map-thumb-skeleton {
+    @apply hidden;
+  }
+
+  /** 桌面：玩家名单独一列；手机才在副行显示 */
+  .px-home-recent-map-player,
+  .px-home-recent-map-player-skeleton {
+    @apply hidden;
+  }
+
+  .px-home-recent-map-player {
+    @apply min-w-0 max-w-[7rem] shrink truncate text-xs font-bold leading-none text-px-ink hover:underline;
+  }
+
+  .px-home-recent-player-col {
+    @apply px-3 align-middle;
+  }
+
+  .px-home-recent-time-col {
+    @apply px-3 align-middle;
   }
 
   /* 最新记录缩略图 mask：见 components/table.css（.px-home-recent-map-link .px-map-thumb） */
 
+  /** loading 骨架：名称 + 副行 */
   .px-home-recent-map-text {
-    @apply flex min-w-0 flex-1 flex-col justify-center overflow-hidden py-2;
+    @apply flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-hidden;
   }
 
   .px-home-recent-map-name {
     @apply block min-w-0 truncate font-bold leading-tight;
   }
 
-  /** 最新记录：左 Tier 彩色芯片，右赛道类型小字（与芯片垂直居中） */
+  /** 最新记录：Tier 芯片 + 赛道类型 */
   .px-home-recent-map-track {
-    @apply mt-0.5 grid w-[5rem] shrink-0 items-center leading-none;
-    grid-template-columns: 1.625rem 2.5rem;
-    column-gap: 0.5rem;
+    @apply flex w-auto shrink-0 items-center gap-1.5 leading-none;
   }
 
   .px-home-recent-map-track-tier {
@@ -39,23 +82,89 @@
   }
 
   .px-home-recent-map-track-kind {
-    @apply pl-1.5 text-xs leading-none text-px-muted;
+    @apply text-xs leading-none text-px-muted;
   }
 
-  /** 窄屏：最新记录不展示地图缩略图，为玩家/时间列留出宽度 */
-  @media (max-width: 640px) {
+  /** 极窄屏（≤480px）：左两行与右侧时间两行对齐；玩家并入 Tier/赛道行 */
+  @media (max-width: 480px) {
+    .px-home-list-panel:has(.px-home-recent-table) {
+      --px-home-row-h: 3.75rem;
+    }
+
+    .px-home-recent-col-map {
+      width: 52%;
+    }
+
+    .px-home-recent-col-player {
+      width: 0;
+    }
+
+    .px-home-recent-col-time {
+      width: 48%;
+    }
+
     .px-home-recent-map-link .px-map-thumb,
     .px-home-recent-map-thumb-skeleton {
       @apply hidden;
     }
 
+    .px-home-list-table-wrap:has(.px-home-recent-table) > table tbody tr.px-home-table-row,
+    .px-home-list-table-wrap:has(.px-home-recent-table) > table tbody tr.px-home-table-row-empty {
+      height: var(--px-home-row-h);
+      max-height: var(--px-home-row-h);
+    }
+
     .px-home-recent-map-link {
-      @apply gap-0 pl-3;
+      @apply justify-center gap-0.5 overflow-hidden pl-2 pr-1;
+      height: var(--px-home-row-h);
+      max-height: var(--px-home-row-h);
+    }
+
+    .px-home-recent-map-name {
+      @apply text-sm leading-tight;
+    }
+
+    .px-home-recent-map-player,
+    .px-home-recent-map-player-skeleton {
+      @apply inline-block;
+    }
+
+    .px-home-recent-map-player::before {
+      content: '·';
+      margin-right: 0.25rem;
+      font-weight: 700;
+      color: color-mix(in oklab, var(--color-px-muted) 55%, transparent);
+    }
+
+    .px-home-recent-player-col {
+      width: 0;
+      max-width: 0;
+      padding: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      font-size: 0;
+      line-height: 0;
+      border: 0;
+    }
+
+    .px-home-recent-player-col > * {
+      @apply hidden;
+    }
+
+    .px-home-recent-time-col {
+      @apply overflow-hidden px-2 align-middle;
+    }
+
+    .px-home-recent-time-main,
+    .px-home-recent-time-date {
+      @apply block overflow-hidden text-ellipsis whitespace-nowrap;
     }
   }
 
   /** 表头 + 10 行高度上限；超出裁剪，不显示滚动条、不撑开页面 */
   .px-home-list-panel {
+    container-type: inline-size;
+    container-name: home-recent;
     --px-home-row-h: 3.5rem;
     --px-home-head-h: 2.75rem;
     --px-home-table-block-h: calc(var(--px-home-head-h) + 10 * var(--px-home-row-h));
@@ -100,7 +209,9 @@
   }
 
   .px-home-table-row {
-    @apply h-14 max-h-14 border-t border-px-ink transition-colors;
+    height: var(--px-home-row-h);
+    max-height: var(--px-home-row-h);
+    @apply border-t border-px-ink transition-colors;
   }
 
   .px-home-table-row:hover {
@@ -112,11 +223,14 @@
   }
 
   .px-home-table-row-empty {
-    @apply h-14 max-h-14 border-t border-px-ink;
+    height: var(--px-home-row-h);
+    max-height: var(--px-home-row-h);
+    @apply border-t border-px-ink;
   }
 
   .px-home-list-cell-truncate {
-    @apply max-h-14 truncate;
+    max-height: var(--px-home-row-h);
+    @apply truncate;
   }
 
   .px-home-column-title {
@@ -129,5 +243,39 @@
 
   .px-home-tables-grid {
     @apply grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-2 lg:gap-8;
+  }
+
+  /** 面板足够宽（双栏约 ≥1280 或单栏 ≥640）：三列 + 地图缩略图 */
+  @container home-recent (min-width: 40rem) {
+    .px-home-recent-col-map {
+      width: 42%;
+    }
+
+    .px-home-recent-col-time {
+      width: 10rem;
+    }
+
+    .px-home-recent-map-link {
+      @apply pl-0;
+    }
+
+    .px-home-recent-map-link .px-map-thumb,
+    .px-home-recent-map-thumb-skeleton {
+      @apply block;
+    }
+
+    /** 副行与地图名左对齐（缩进缩略图宽） */
+    .px-home-recent-map-sub {
+      margin-left: calc(5rem + 0.5rem);
+    }
+
+    /** loading：缩略图与文字骨架横排 */
+    .px-home-recent-map-link:has(> .px-home-recent-map-thumb-skeleton) {
+      @apply flex-row items-center gap-2;
+    }
+
+    .px-home-recent-map-link:has(> .px-home-recent-map-thumb-skeleton) .px-home-recent-map-sub {
+      margin-left: 0;
+    }
   }
 }

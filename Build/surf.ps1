@@ -155,11 +155,13 @@ function Get-ApiEnvCommandLines {
 function Sync-WebProductionEnv {
     $v = Read-BuildEnv
     $title = if ($v['VITE_SITE_TITLE']) { $v['VITE_SITE_TITLE'] } else { '地满滑翔' }
+    $ops = if ($null -ne $v['VITE_SITE_OPS']) { $v['VITE_SITE_OPS'] } else { '' }
     $path = Join-Path $Root 'Web/.env.production'
     $utf8 = New-Object System.Text.UTF8Encoding $false
     $content = @(
         'VITE_API_BASE_URL=/api/v1'
         ('VITE_SITE_TITLE={0}' -f $title)
+        ('VITE_SITE_OPS={0}' -f $ops)
     ) -join "`n"
     [System.IO.File]::WriteAllText($path, $content + "`n", $utf8)
     Write-Host '已根据 Build/.env 同步 Web/.env.production' -ForegroundColor DarkGray

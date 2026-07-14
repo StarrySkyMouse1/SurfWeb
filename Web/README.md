@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-默认开发地址：<http://localhost:5173>
+默认开发地址：<http://localhost:20011>
 
 ## 环境变量
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppHeader from './components/AppHeader.vue'
-import { siteTitle } from './config/site'
+import { siteOps, siteTitle } from './config/site'
 </script>
 
 <template>
@@ -19,6 +19,7 @@ import { siteTitle } from './config/site'
       <p class="font-bold">{{ siteTitle }}</p>
       <p class="mt-0.5 font-pixel text-[9px] text-px-muted">SURF RECORD</p>
       <p class="mt-1 normal-case">网站作者 星空鼠鼠</p>
+      <p v-if="siteOps" class="mt-1 normal-case">网站运维 {{ siteOps }}</p>
     </footer>
   </div>
 </template>
