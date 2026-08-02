@@ -175,7 +175,7 @@ SurfWeb 是一个面向 Surf 服务器成绩查询的只读网站，目标是提
   - 返回实时服务器状态（对齐旧版 `Steam/GetServerInfo` + 玩家列表）。
   - 查询参数：`refresh`（可选，`true` 时强制立即 Steam A2S 刷新）。
   - 响应字段：`name`、`address`、`online`、`map`、`mapTier`、`players`、`maxPlayers`、`note`、`onlinePlayers[]`（`name`、`auth`、`durationSeconds`、`durationDisplay`）。
-  - 实现：`SurfWeb.ServerStatus` 中 `ServerStatusRefresher` 后台每 `SurfWeb:ServerQuery:RefreshSeconds` 秒 UDP 查询；`GET` 在缓存过期时懒刷新；Steam 逻辑移植自 `Server/参考/SurfWebDefault/Utils/Steam/SteamUtil.cs`；地图 Tier / 玩家 `auth` 经 `IMapService.GetMapTierByMapNameAsync`、`IUserService.GetAuthsByNamesAsync` 补充（失败时仍返回 Steam 数据）。
+  - 实现：`SurfWeb.ServerStatus` 中 `ServerStatusRefresher` 后台每 `SurfWeb:ServerQuery:RefreshSeconds` 秒 UDP 查询；`GET` 在缓存过期时懒刷新；Steam 逻辑移植自 `Server/参考/SurfWebDefault/Utils/Steam/SteamUtil.cs`（已支持**域名 DNS 解析**，不要求配置纯 IP；`Host` 误带 `:port` 会自动剥离）；地图 Tier / 玩家 `auth` 经 `IMapService.GetMapTierByMapNameAsync`、`IUserService.GetAuthsByNamesAsync` 补充（失败时仍返回 Steam 数据）。
 
 ### 5.2 只读边界
 
@@ -332,7 +332,7 @@ HTTP 请求
 - `SurfWeb:Styles`（仅服务端：解析 `DefaultStyleId` 并过滤 `playertimes`/`stagetimes`；无对外 HTTP 接口）
 - `SurfWeb:MapImages`：`BaseUrl` 使用 `https://example.com/surf-map-images/` 作为模板占位，真实图床目录放入本地配置；前端拼图为 `{BaseUrl}{地图名}{Extension}`
 - `SurfWeb:ServerQuery`：`RefreshSeconds`（后台 A2S 刷新间隔，默认 30）、`QueryTimeoutMs`（UDP 超时，默认 8000）
-- `SurfWeb:Servers[]`：公开默认值使用 `127.0.0.1:27015` 作为模板占位；真实服务器放入本地配置。字段包含 `Name`、`Address`（`connect host:port` 或 `host:port`）、可选 `Host`/`Port` 覆盖、`MaxPlayers` 占位。
+- `SurfWeb:Servers[]`：公开默认值使用 `127.0.0.1:27015` 作为模板占位；真实服务器放入本地配置。字段包含 `Name`、`Address`（`connect host:port` 或 `host:port`）、可选 `Host`/`Port` 覆盖（`Host` 只写主机名或 IP，**不要**带端口；域名会在 A2S 查询前 DNS 解析）、`MaxPlayers` 占位。
 - `SurfWeb:ExternalApi:LatestRecordsToken`：`GET /api/v1/api/records/latest` 查询参数 `token`；未配置或为空时该接口一律 **401**（生产环境请用 User Secrets / 环境变量，勿提交真实 token）。
 
 本地开发（二选一，均不提交 Git）：

@@ -9,12 +9,22 @@ public static class ServerEndpointParser
 
         if (!string.IsNullOrWhiteSpace(host) && port is > 0 and <= 65535)
         {
-            resolvedHost = host.Trim();
+            // 容错：Host 误写成 "example.com:27015" 时拆掉端口，优先用配置的 Port
+            if (!TrySplitHostPort(host.Trim(), out resolvedHost, out _) || string.IsNullOrWhiteSpace(resolvedHost))
+                resolvedHost = host.Trim();
             resolvedPort = port.Value;
-            return true;
+            return !string.IsNullOrWhiteSpace(resolvedHost);
         }
 
-        var text = address.Trim();
+        return TrySplitHostPort(address, out resolvedHost, out resolvedPort);
+    }
+
+    private static bool TrySplitHostPort(string raw, out string resolvedHost, out int resolvedPort)
+    {
+        resolvedHost = "";
+        resolvedPort = 0;
+
+        var text = raw.Trim();
         if (text.StartsWith("connect ", StringComparison.OrdinalIgnoreCase))
             text = text["connect ".Length..].Trim();
 

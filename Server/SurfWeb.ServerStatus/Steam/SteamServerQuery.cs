@@ -8,7 +8,7 @@ public static class SteamServerQuery
 {
     public static SteamServerInfo QueryServer(string host, int port, int timeoutMs)
     {
-        var endPoint = new IPEndPoint(IPAddress.Parse(host), port);
+        var endPoint = ResolveEndPoint(host, port);
         using var udp = new UdpClient();
         udp.Client.SendTimeout = timeoutMs;
         udp.Client.ReceiveTimeout = timeoutMs;
@@ -57,15 +57,17 @@ public static class SteamServerQuery
         var map = reader.ReadString();
         _ = reader.ReadString();
         _ = reader.ReadString();
-        var players = reader.ReadInt16();
-        var maxPlayers = reader.ReadInt16();
+        // A2S_INFO：AppID(short) 之后才是 Players / MaxPlayers（此前误把 AppID 当人数）
+        _ = reader.ReadInt16();
+        var players = reader.ReadByte();
+        var maxPlayers = reader.ReadByte();
 
         return new SteamServerInfo(name, map, players, maxPlayers);
     }
 
     public static IReadOnlyList<SteamPlayerInfo> QueryPlayers(string host, int port, int timeoutMs)
     {
-        var endPoint = new IPEndPoint(IPAddress.Parse(host), port);
+        var endPoint = ResolveEndPoint(host, port);
         using var udp = new UdpClient();
         udp.Client.SendTimeout = timeoutMs;
         udp.Client.ReceiveTimeout = timeoutMs;
@@ -121,7 +123,37 @@ public static class SteamServerQuery
         return challenge;
     }
 
-    public sealed record SteamServerInfo(string Name, string Map, short Players, short MaxPlayers);
+    /// <summary>
+    /// 支持 IPv4 / 域名。游戏客户端能连 <c>host:port</c>，但 A2S 必须先解析成 IP。
+    /// </summary>
+    private static IPEndPoint ResolveEndPoint(string host, int port)
+    {
+        if (string.IsNullOrWhiteSpace(host))
+            throw new InvalidOperationException("Steam 查询主机为空");
+
+        var trimmed = host.Trim();
+        if (IPAddress.TryParse(trimmed, out var ip))
+            return new IPEndPoint(ip, port);
+
+        IPAddress[] addresses;
+        try
+        {
+            addresses = Dns.GetHostAddresses(trimmed);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"无法解析主机名: {trimmed}", ex);
+        }
+
+        var ipv4 = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)
+                   ?? addresses.FirstOrDefault();
+        if (ipv4 is null)
+            throw new InvalidOperationException($"主机名无可用地址: {trimmed}");
+
+        return new IPEndPoint(ipv4, port);
+    }
+
+    public sealed record SteamServerInfo(string Name, string Map, int Players, int MaxPlayers);
 
     public sealed record SteamPlayerInfo(string Name, float DurationSeconds);
 
