@@ -17,6 +17,8 @@ export interface ServerInfo {
   players: number
   maxPlayers: number
   note?: string
+  /** Steam AppID；未填 / 0 时「加入」用 steam://connect */
+  steamAppId: number
   onlinePlayers: ServerOnlinePlayer[]
 }
 
@@ -33,6 +35,7 @@ async function fetchServers(): Promise<ServerInfo[]> {
     players: s.players ?? 0,
     maxPlayers: s.maxPlayers ?? 0,
     note: s.note,
+    steamAppId: s.steamAppId ?? 0,
     onlinePlayers: (s.onlinePlayers ?? []).map((p) => ({
       name: p.name,
       auth: p.auth,

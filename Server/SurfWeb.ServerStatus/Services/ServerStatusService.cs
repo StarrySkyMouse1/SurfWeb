@@ -61,6 +61,7 @@ public sealed class ServerStatusService(
                 players,
                 maxPlayers,
                 string.IsNullOrWhiteSpace(cfg.Note) ? null : cfg.Note.Trim(),
+                cfg.SteamAppId,
                 onlinePlayers));
         }
 

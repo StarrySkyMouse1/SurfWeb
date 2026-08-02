@@ -9,6 +9,7 @@ public sealed record ServerStatusDto(
     int Players,
     int MaxPlayers,
     string? Note,
+    int SteamAppId,
     IReadOnlyList<ServerOnlinePlayerDto> OnlinePlayers);
 
 public sealed record ServerOnlinePlayerDto(

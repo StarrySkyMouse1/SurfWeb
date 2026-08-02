@@ -58,15 +58,31 @@ export function parseServerEndpoint(address: string): { host: string; port: numb
   return { host, port }
 }
 
-/** Steam 协议连接串（需本机已安装 Steam 客户端） */
-export function buildSteamConnectUrl(address: string): string | null {
+/**
+ * Steam 进服链接。
+ * - `steamAppId` 未填 / `0`：`steam://connect/host:port`（旧行为，由 Steam 自动识别游戏）
+ * - `steamAppId > 0`：`steam://run/{id}//+connect host:port`（指定游戏）
+ */
+export function buildSteamConnectUrl(address: string, steamAppId = 0): string | null {
   const ep = parseServerEndpoint(address)
   if (!ep) return null
+  if (steamAppId > 0) {
+    return `steam://run/${steamAppId}//+connect%20${ep.host}:${ep.port}`
+  }
   return `steam://connect/${ep.host}:${ep.port}`
 }
 
-export function joinServer(address: string): void {
-  const url = buildSteamConnectUrl(address)
+function launchSteamUrl(url: string): void {
+  const iframe = document.createElement('iframe')
+  iframe.style.display = 'none'
+  iframe.src = url
+  document.body.appendChild(iframe)
+  window.setTimeout(() => iframe.remove(), 2000)
+}
+
+/** 按是否配置 SteamAppId 选择进服方式；只触发一次，不做延迟补连。 */
+export function joinServer(address: string, steamAppId = 0): void {
+  const url = buildSteamConnectUrl(address, steamAppId)
   if (!url) return
-  window.location.href = url
+  launchSteamUrl(url)
 }

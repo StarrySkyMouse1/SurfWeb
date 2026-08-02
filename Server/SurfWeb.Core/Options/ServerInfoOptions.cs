@@ -32,4 +32,11 @@ public sealed class ServerInfoOptions
     public int? MaxPlayers { get; init; }
 
     public string? Note { get; init; }
+
+    /// <summary>
+    /// 可选 Steam AppID。「加入」行为：
+    /// 未填或 <c>0</c> → <c>steam://connect</c>；
+    /// 大于 0 → <c>steam://run/{AppId}//+connect …</c>。
+    /// </summary>
+    public int SteamAppId { get; init; }
 }

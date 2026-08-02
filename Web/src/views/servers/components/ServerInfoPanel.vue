@@ -189,7 +189,7 @@ function canJoin(address: string): boolean {
               !canJoin(server.address) ? 'cursor-not-allowed opacity-50' : '',
             ]"
             :disabled="!canJoin(server.address)"
-            @click="joinServer(server.address)"
+            @click="joinServer(server.address, server.steamAppId)"
           >
             加入
           </button>
